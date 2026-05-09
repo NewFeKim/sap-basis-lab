@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAP Basis Training Terminal v2</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:24px 16px;font-family:'Menlo','Courier New',monospace}
+#tr{width:100%;max-width:960px;background:#0d1117;color:#c9d1d9;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;font-size:13px;border:1px solid #30363d;min-height:600px}
+.tb{background:#161b22;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #30363d;flex-shrink:0}
+.dot{width:12px;height:12px;border-radius:50%}
+.dr{background:#ff5f57}.dy{background:#ffbd2e}.dg{background:#28ca41}
+.tt{margin-left:8px;font-size:11px;color:#8b949e;letter-spacing:.5px}
+.stabs{display:flex;background:#0d1117;border-bottom:1px solid #30363d;flex-shrink:0}
+.stab{padding:6px 18px;font-size:11px;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;user-select:none;transition:color .15s}
+.stab.on{color:#58a6ff;border-bottom-color:#58a6ff}
+.stab:hover:not(.on){color:#c9d1d9}
+.out{overflow-y:auto;padding:12px 16px;line-height:1.65;flex:1;min-height:440px;max-height:500px}
+.out::-webkit-scrollbar{width:5px}
+.out::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
+.ln{white-space:pre-wrap;word-break:break-all;min-height:1.65em}
+.ln.su{color:#56d364}.ln.er{color:#f85149}.ln.wa{color:#e3b341}
+.ln.in{color:#79c0ff}.ln.mu{color:#6e7681}
+.pg{background:#0d1117;padding:7px 16px;border-top:1px solid #30363d;font-size:11px;color:#6e7681;display:none;align-items:center;gap:12px;flex-shrink:0}
+.ir{display:flex;align-items:center;padding:8px 16px 12px;border-top:1px solid #21262d;gap:6px;flex-shrink:0;background:#0d1117}
+.pl{color:#56d364;font-size:13px;white-space:nowrap;flex-shrink:0}
+#ci{flex:1;background:transparent;border:none;outline:none;color:#e6edf3;font-family:'Menlo','Courier New',monospace;font-size:13px;caret-color:#e6edf3}
+.hb{padding:6px 16px;background:#161b22;font-size:11px;color:#6e7681;border-top:1px solid #21262d;flex-shrink:0;display:flex;gap:12px;flex-wrap:wrap}
+.hb span{cursor:pointer;transition:color .1s}.hb span:hover{color:#c9d1d9}
+</style>
+</head>
+<body>
+<div id="tr">
+  <div class="tb">
+    <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+    <span class="tt" id="tt-title">SAP Basis Training Terminal v2 — AP Server (SLES 15 SP4) — SID: S4H</span>
+  </div>
+  <div class="stabs">
+    <div class="stab on" id="tab-ap" onclick="switchTab('ap')">AP Server (s4happ01)</div>
+    <div class="stab"    id="tab-db" onclick="switchTab('db')">DB Server (s4hdb01)</div>
+  </div>
+  <div class="out" id="output"></div>
+  <div class="pg" id="pager">
+    <span id="pg-info"></span>
+    <span style="color:#58a6ff;cursor:pointer" onclick="pagerNext()">Space: 다음 페이지</span>
+    <span style="color:#8b949e;cursor:pointer" onclick="pagerQuit()">q: 종료</span>
+  </div>
+  <div class="ir">
+    <span class="pl" id="pl">s4hadm@s4happ01:/usr/sap/S4H&gt;</span>
+    <input id="ci" type="text" autocomplete="off" spellcheck="false" autofocus placeholder="명령어 입력 (help 로 목록 확인)..." />
+  </div>
+  <!-- AP 서버 힌트 버튼 -->
+  <div class="hb" id="hb-ap">
+    <span onclick="rc('startsap')">startsap</span>
+    <span onclick="rc('stopsap')">stopsap</span>
+    <span onclick="rc('sapcontrol -nr 00 -function GetProcessList')">GetProcessList</span>
+    <span onclick="rc('dpmon')">dpmon</span>
+    <span onclick="rc('ps aux | grep dw')">ps|grep dw</span>
+    <span onclick="rc('tail -f /usr/sap/S4H/D00/work/dev_w0')">tail -f dev_w0</span>
+    <span onclick="rc('grep ERROR /usr/sap/S4H/D00/work/dev_w0')">grep ERROR</span>
+    <span onclick="rc('find /usr/sap/S4H -name \"*.log\"')">find *.log</span>
+    <span onclick="rc('df -h')">df -h</span>
+    <span onclick="rc('free -m')">free -m</span>
+    <span onclick="rc('netstat -tlnp')">netstat</span>
+    <span onclick="rc('vi /usr/sap/S4H/SYS/profile/DEFAULT.PFL')">vi profile</span>
+    <span onclick="rc('R3trans -d')">R3trans -d</span>
+    <span onclick="rc('env | grep SAP')">env|grep SAP</span>
+    <span onclick="rc('help')">help</span>
+  </div>
+  <!-- DB 서버 힌트 버튼 -->
+  <div class="hb" id="hb-db" style="display:none">
+    <span onclick="rc('HDB info')">HDB info</span>
+    <span onclick="rc('HDB start')">HDB start</span>
+    <span onclick="rc('HDB stop')">HDB stop</span>
+    <span onclick="rc('HDB version')">HDB version</span>
+    <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_SERVICES\"')">M_SERVICES</span>
+    <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_DATABASES\"')">M_DATABASES</span>
+    <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_DISK_USAGE\"')">M_DISK_USAGE</span>
+    <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_BACKUP_CATALOG\"')">M_BACKUP_CATALOG</span>
+    <span onclick="rc('hdbcons \"replication info\"')">hdbcons</span>
+    <span onclick="rc('hdbbackupdiag --check')">hdbbackupdiag</span>
+    <span onclick="rc('sapcontrol -nr 00 -function GetProcessList')">sc GetProcessList</span>
+    <span onclick="rc('sapcontrol -nr 00 -function Start')">sc Start</span>
+    <span onclick="rc('sapcontrol -nr 00 -function Stop')">sc Stop</span>
+    <span onclick="rc('tail -f /usr/sap/S4H/HDB00/trace/nameserver_s4hdb01.30001.000.trc')">tail -f nameserver</span>
+    <span onclick="rc('df -h')">df -h</span>
+    <span onclick="rc('env | grep HDB')">env|grep HDB</span>
+    <span onclick="rc('help')">help</span>
+  </div>
+</div>
+
+<script>
+/* ───────────────────────────────────────────
+   상태 변수
+─────────────────────────────────────────── */
+const SID='S4H', AP_HOST='s4happ01', DB_HOST='s4hdb01', NR='00';
+let activeTab='ap';
+let HOST=AP_HOST;
+
+// AP 서버 상태
+let apCwd='/usr/sap/S4H', apUser='s4hadm', sapOn=true;
+// DB 서버 상태
+let dbCwd='/usr/sap/S4H/HDB00', dbUser='s4hdb01adm', dbOn=true;
+
+// 현재 활성 상태 (탭 전환 시 교체)
+let cwd=apCwd, user=apUser;
+let hist=[], hidx=-1, pagerLines=[], pagerPos=0, pagerActive=false;
+
+/* ───────────────────────────────────────────
+   AP 서버 가상 파일시스템
+─────────────────────────────────────────── */
+const FS_AP={
+  '/':['usr','sapmnt','tmp','var','etc','home','proc','dev'],
+  '/usr':['sap','bin','local','lib'],
+  '/usr/sap':[SID,'hostctrl','trans'],
+  '/usr/sap/S4H':['D00','SYS','ASCS01'],
+  '/usr/sap/S4H/D00':['work','exe','log','data'],
+  '/usr/sap/S4H/D00/work':['dev_w0','dev_w1','dev_w2','dev_w3','dev_disp','dev_icm','dev_ms','dev_rfc','stderr','stdout','sapstart.log'],
+  '/usr/sap/S4H/D00/exe':['disp+work','icman','gwrd','msserv','sapstartsrv','R3trans'],
+  '/usr/sap/S4H/D00/log':['sapstart.log','SLOG00.log'],
+  '/usr/sap/S4H/SYS':['profile','global','exe'],
+  '/usr/sap/S4H/SYS/profile':['DEFAULT.PFL','S4H_D00_s4happ01','S4H_ASCS01_s4happ01','S4H_MS_s4happ01'],
+  '/usr/sap/S4H/SYS/global':['security','sapcontrol.xml'],
+  '/usr/sap/S4H/ASCS01':['work','exe'],
+  '/usr/sap/S4H/ASCS01/work':['dev_ms','dev_en','sapstart.log'],
+  '/usr/sap/hostctrl':['exe','work'],
+  '/usr/sap/trans':['data','cofiles','log','tmp','buffer','actlog'],
+  '/usr/sap/trans/log':['SLOG.log','ALOG20260507.log'],
+  '/sapmnt':[SID],
+  '/sapmnt/S4H':['global','profile','exe'],
+  '/home':['s4hadm','root'],
+  '/home/s4hadm':['.bash_profile','.sapenv_s4happ01.sh','sap_trans_check.sh'],
+  '/home/root':['.bash_profile','.bashrc'],
+  '/tmp':['sapinst_instdir','hsperfdata_s4hadm'],
+  '/var':['log','run'],
+  '/var/log':['messages','secure','zypper.log'],
+  '/etc':['hosts','hostname','fstab','sysconfig','passwd'],
+};
+
+/* ───────────────────────────────────────────
+   AP 서버 파일 내용
+─────────────────────────────────────────── */
+const FILES_AP={
+  '/usr/sap/S4H/D00/work/dev_w0':`trc file: "dev_w0", trc level: 1, release: "753"
+*  ACTIVE TRACE LEVEL           1
+*  ACTIVE TRACE COMPONENTS      all
+
+M  Wed May 07 09:14:22 2026
+M  ***LOG Q0I=> NiPConnect2: connect (s4hdb01.corp.com:30015) [nixxi.cpp 3066]
+M  Wed May 07 09:14:22 2026
+M  *** connected to DB (s4hdb01.corp.com:30015) ***
+M  Wed May 07 09:14:23 2026
+M  set_MBT_RQ_CONTEXT: CL_HTTP_SERVER=>HANDLE_REQUEST
+W  Wed May 07 09:14:25 2026
+W  WorkProcess is WAITING for roll-in
+M  Wed May 07 09:40:01 2026
+M  ThVBEnd: WP back to free state (type DIA, no.0)
+M  Wed May 07 09:41:10 2026
+M  ERROR => DpWPCheck: wp 2 (dia) not responding (PID 28474)
+M  Wed May 07 09:41:10 2026
+M  DpHdlDeadWp: wp 2 restarted (new PID: 28511)`,
+
+  '/usr/sap/S4H/D00/work/dev_disp':`trc file: "dev_disp", trc level: 1, release: "753"
+DpISetVBufLockTimeout: TIMEOUT = 5000
+*  Wed May 07 09:14:20 2026
+*  SAP Dispatcher - Start
+*  kernel release                753
+*  kernel make variant           753_REL
+*  compiled on                   Linux GNU SLES-15 x86_64
+*  compilation mode              UNICODE
+*  compile time                  Feb 14 2026 12:33:22
+*  Dispatcher runs with dp version 286000
+*  nr of app server processes    6 DIA + 3 BTC + 2 SPO + 1 UPD + 1 UPD2
+DpStartStopRecord: disp start finished`,
+
+  '/usr/sap/S4H/D00/work/dev_icm':`trc file: "dev_icm", trc level: 1, release: "753"
+[Thr 140411026644736] Wed May 07 09:14:21 2026
+[Thr 140411026644736] IcmListenThreadMain: started
+[Thr 140411026644736] NiBufListen: TCP port 8000 (HTTP) on s4happ01 (10.10.1.51)
+[Thr 140411026644736] NiBufListen: TCP port 44300 (HTTPS) on s4happ01
+[Thr 140411026644736] ICM started successfully`,
+
+  '/usr/sap/S4H/D00/work/dev_ms':`trc file: "dev_ms", trc level: 1, release: "753"
+MsIInitClientSlot: init slot table (maxServers=1000)
+MsSrv2Name: server s4happ01_S4H_00, type AP
+MsRegistrationOk: server s4happ01_S4H_00 registered OK`,
+
+  '/usr/sap/S4H/D00/work/sapstart.log':`sapstart: starting SAP instance D00
+sapstart: Wed May 07 2026 09:14:18
+sapstart: /usr/sap/S4H/D00/exe/disp+work pf=/usr/sap/S4H/SYS/profile/S4H_D00_s4happ01
+sapstart: process disp+work started, pid = 28472
+sapstart: process icman started, pid = 28490
+sapstart: process gwrd started, pid = 28483`,
+
+  '/usr/sap/S4H/SYS/profile/DEFAULT.PFL':`SAPSYSTEMNAME = S4H
+SAPSYSTEM = 00
+SAPGLOBALHOST = s4happ01
+rdisp/wp_no_dia = 6
+rdisp/wp_no_btc = 3
+rdisp/wp_no_spo = 2
+rdisp/wp_no_upd = 1
+rdisp/wp_no_vb2 = 1
+icm/server_port_0 = PROT=HTTP,PORT=8000
+icm/server_port_1 = PROT=HTTPS,PORT=44300
+login/system_client = 100
+zcsa/installed_languages = KE
+abap/heap_area_total = 8589934592
+em/initial_size_MB = 4096
+rdisp/max_wprun_time = 600`,
+
+  '/usr/sap/S4H/SYS/profile/S4H_D00_s4happ01':`SAPSYSTEMNAME = S4H
+SAPSYSTEM = 00
+INSTANCE_NAME = D00
+DIR_CT_RUN = /usr/sap/S4H/D00/exe
+DIR_EXECUTABLE = /usr/sap/S4H/D00/exe
+rdisp/myname = s4happ01_S4H_00
+rdisp/mshost = s4happ01
+rdisp/msserv = sapmsS4H
+ms/server_port_0 = PROT=HTTP,PORT=8100
+dbs/hdb/dbhost = s4hdb01.corp.com
+dbs/hdb/dbname = S4H
+dbs/hdb/schema = SAPABAP1`,
+
+  '/etc/hosts':`127.0.0.1   localhost
+10.10.1.51  s4happ01 s4happ01.corp.com
+10.10.1.52  s4hdb01  s4hdb01.corp.com
+10.10.1.53  s4happ02 s4happ02.corp.com`,
+
+  '/etc/fstab':`/dev/sda1  /              ext4  defaults          1 1
+/dev/sda3  /usr/sap       xfs   defaults,noatime  0 0
+/dev/sdb1  /sapmnt        xfs   defaults,noatime  0 0
+/dev/sdb2  /usr/sap/trans xfs   defaults,noatime  0 0
+tmpfs      /dev/shm       tmpfs size=16G          0 0`,
+
+  '/home/s4hadm/.bash_profile':`# SAP environment for s4hadm
+SAPSYSTEMNAME=S4H; export SAPSYSTEMNAME
+SAPSYSTEM=00;     export SAPSYSTEM
+SAPGLOBALHOST=s4happ01; export SAPGLOBALHOST
+. /usr/sap/S4H/D00/exe/sapenv_s4happ01.sh
+umask 022`,
+
+  '/home/s4hadm/sap_trans_check.sh':`#!/bin/bash
+# Transport buffer check script
+echo "=== Transport Buffer Status ==="
+ls -lh /usr/sap/trans/data/ | tail -20
+echo ""
+echo "=== Cofiles ==="
+ls -lh /usr/sap/trans/cofiles/ | tail -20`,
+
+  '/var/log/messages':`May  7 09:14:15 s4happ01 kernel: EXT4-fs (sda1): re-mounted
+May  7 09:14:18 s4happ01 sapstartsrv: starting SAP instance S4H D00
+May  7 09:14:22 s4happ01 kernel: NFS: server s4hdb01 not responding
+May  7 09:14:23 s4happ01 kernel: NFS: server s4hdb01 OK
+May  7 09:40:01 s4happ01 sapstartsrv: [D00] disp+work: PID 28474 DEAD - restarting`,
+};
+
+/* ───────────────────────────────────────────
+   DB 서버 가상 파일시스템
+─────────────────────────────────────────── */
+const FS_DB={
+  '/':['usr','hana','home','etc','var','tmp','proc','dev'],
+  '/usr':['sap','bin','local','lib'],
+  '/usr/sap':[SID,'hostctrl'],
+  '/usr/sap/S4H':['HDB00','SYS'],
+  '/usr/sap/S4H/HDB00':['exe','work','trace','backup'],
+  '/usr/sap/S4H/HDB00/exe':['hdbdaemon','hdbsql','hdbcons','hdbbackupdiag','hdbuserstore','sapstartsrv'],
+  '/usr/sap/S4H/HDB00/work':[],
+  '/usr/sap/S4H/HDB00/trace':['nameserver_s4hdb01.30001.000.trc','indexserver_s4hdb01.30003.000.trc','backup.log','daemon.trc'],
+  '/usr/sap/S4H/HDB00/backup':['data','log'],
+  '/usr/sap/S4H/SYS':['global','profile'],
+  '/usr/sap/S4H/SYS/profile':['S4H_HDB00_s4hdb01'],
+  '/hana':['shared','data','log','backup'],
+  '/hana/shared':[SID],
+  '/hana/shared/S4H':['HDB00','global','profile','hdbclient'],
+  '/hana/shared/S4H/HDB00':['exe','work','trace'],
+  '/hana/shared/S4H/HDB00/trace':['nameserver_s4hdb01.30001.000.trc','indexserver_s4hdb01.30003.000.trc','backup.log'],
+  '/hana/shared/S4H/global':['hdb'],
+  '/hana/shared/S4H/global/hdb':['custom'],
+  '/hana/shared/S4H/global/hdb/custom':['config'],
+  '/hana/shared/S4H/global/hdb/custom/config':['global.ini','indexserver.ini','nameserver.ini'],
+  '/hana/shared/S4H/profile':['S4H_HDB00_s4hdb01'],
+  '/hana/shared/S4H/hdbclient':['hdbsql','hdbuserstore','libdbcapiHDB.so'],
+  '/hana/data':[SID],
+  '/hana/data/S4H':['mnt00001'],
+  '/hana/data/S4H/mnt00001':['hdb00001.dat','hdb00002.dat'],
+  '/hana/log':[SID],
+  '/hana/log/S4H':['mnt00001'],
+  '/hana/log/S4H/mnt00001':['hdblog00001.log','hdblog00002.log'],
+  '/hana/backup':['data','log','catalog'],
+  '/hana/backup/data':['COMPLETE_DATA_BACKUP_databackup_0_1','COMPLETE_DATA_BACKUP_databackup_1_1'],
+  '/hana/backup/log':['log_backup_0_0_0_0.1746576000'],
+  '/hana/backup/catalog':['log_backup_catalog_0_0.1746576000'],
+  '/home':['s4hdb01adm','root'],
+  '/home/s4hdb01adm':['.bash_profile','.sapenv_s4hdb01.sh','hdb_backup_check.sh'],
+  '/home/root':['.bash_profile','.bashrc'],
+  '/etc':['hosts','hostname','fstab','sysconfig','passwd'],
+  '/var':['log'],
+  '/var/log':['messages','secure'],
+  '/tmp':['hsperfdata_s4hdb01adm'],
+};
+
+/* ───────────────────────────────────────────
+   DB 서버 파일 내용
+─────────────────────────────────────────── */
+const FILES_DB={
+  '/usr/sap/S4H/HDB00/trace/nameserver_s4hdb01.30001.000.trc':`[34765]{-1}[-1/-1] 2026-05-08 09:14:01.123456 i nameserver     SQLMDA.cc(00434) : Starting nameserver
+[34765]{-1}[-1/-1] 2026-05-08 09:14:01.234567 i nameserver     MasterNameServer.cc(00234) : Initializing nameserver
+[34765]{-1}[-1/-1] 2026-05-08 09:14:02.345678 i nameserver     Catalog.cc(00123) : Loading catalog
+[34765]{-1}[-1/-1] 2026-05-08 09:14:03.456789 i nameserver     MasterNameServer.cc(00456) : Nameserver started, topology loaded
+[34765]{-1}[-1/-1] 2026-05-08 09:14:03.567890 i nameserver     NameServer.cc(00789) : System is ready`,
+
+  '/usr/sap/S4H/HDB00/trace/indexserver_s4hdb01.30003.000.trc':`[34890]{-1}[-1/-1] 2026-05-08 09:14:05.123456 i indexserver    Startup.cc(00234) : Starting indexserver
+[34890]{-1}[-1/-1] 2026-05-08 09:14:05.234567 i indexserver    AttributeEngine.cc(00456) : Loading column store
+[34890]{-1}[-1/-1] 2026-05-08 09:14:08.345678 i indexserver    Startup.cc(00789) : Column store loaded (3.2 GB)
+[34890]{-1}[-1/-1] 2026-05-08 09:14:09.456789 i indexserver    RowEngine.cc(00234) : Loading row store
+[34890]{-1}[-1/-1] 2026-05-08 09:14:10.567890 i indexserver    Startup.cc(01023) : Indexserver ready, port 30003`,
+
+  '/usr/sap/S4H/HDB00/trace/backup.log':`2026-05-07 02:00:00.000000 +0000  INFO    BACKINT  Starting COMPLETE DATA BACKUP
+2026-05-07 02:00:03.123456 +0000  INFO    BACKINT  Backup ID: COMPLETE_DATA_BACKUP_databackup_0_1
+2026-05-07 02:00:03.234567 +0000  INFO    BACKINT  Backing up volume 1 (DATA)
+2026-05-07 04:12:44.345678 +0000  INFO    BACKINT  Volume 1 backup complete (48.3 GB)
+2026-05-07 04:12:45.456789 +0000  INFO    BACKINT  COMPLETE DATA BACKUP successful
+2026-05-08 00:00:01.000000 +0000  INFO    BACKINT  Starting LOG BACKUP
+2026-05-08 00:00:01.123456 +0000  INFO    BACKINT  Log backup successful (2.1 GB)`,
+
+  '/hana/shared/S4H/HDB00/trace/nameserver_s4hdb01.30001.000.trc':`[34765]{-1}[-1/-1] 2026-05-08 09:14:01.123456 i nameserver     SQLMDA.cc(00434) : Starting nameserver
+[34765]{-1}[-1/-1] 2026-05-08 09:14:01.234567 i nameserver     MasterNameServer.cc(00234) : Initializing nameserver
+[34765]{-1}[-1/-1] 2026-05-08 09:14:02.345678 i nameserver     Catalog.cc(00123) : Loading catalog
+[34765]{-1}[-1/-1] 2026-05-08 09:14:03.456789 i nameserver     MasterNameServer.cc(00456) : Nameserver started, topology loaded
+[34765]{-1}[-1/-1] 2026-05-08 09:14:03.567890 i nameserver     NameServer.cc(00789) : System is ready`,
+
+  '/hana/shared/S4H/HDB00/trace/indexserver_s4hdb01.30003.000.trc':`[34890]{-1}[-1/-1] 2026-05-08 09:14:05.123456 i indexserver    Startup.cc(00234) : Starting indexserver
+[34890]{-1}[-1/-1] 2026-05-08 09:14:05.234567 i indexserver    AttributeEngine.cc(00456) : Loading column store
+[34890]{-1}[-1/-1] 2026-05-08 09:14:08.345678 i indexserver    Startup.cc(00789) : Column store loaded (3.2 GB)
+[34890]{-1}[-1/-1] 2026-05-08 09:14:10.567890 i indexserver    Startup.cc(01023) : Indexserver ready, port 30003`,
+
+  '/hana/shared/S4H/global/hdb/custom/config/global.ini':`[system_replication]
+mode        = primary
+actual_mode = primary
+
+[persistence]
+basepath_datavolumes = /hana/data/S4H
+basepath_logvolumes  = /hana/log/S4H
+
+[backup]
+catalog_backup_using_backint          = false
+log_backup_using_backint              = false
+data_backup_buffer_size               = 2048
+parallel_data_backup_backint_channels = 4
+
+[communication]
+listeninterface = .global
+
+[multidb]
+mode               = multidb
+database_isolation = low`,
+
+  '/home/s4hdb01adm/.bash_profile':`# SAP HANA environment for s4hdb01adm
+SAPSYSTEMNAME=S4H;              export SAPSYSTEMNAME
+SAPSYSTEM=00;                   export SAPSYSTEM
+HDB_NR=00;                      export HDB_NR
+DIR_INSTANCE=/usr/sap/S4H/HDB00; export DIR_INSTANCE
+SECUDIR=/usr/sap/S4H/HDB00/exe/sec; export SECUDIR
+. /usr/sap/S4H/HDB00/exe/sapenv_s4hdb01.sh
+alias HDB='$DIR_INSTANCE/HDB'
+umask 022`,
+
+  '/home/s4hdb01adm/hdb_backup_check.sh':`#!/bin/bash
+# HANA backup status check script
+echo "=== Last Data Backup ==="
+hdbsql -i 00 -u SYSTEM -p &lt;password&gt; "SELECT TOP 1 * FROM M_BACKUP_CATALOG WHERE ENTRY_TYPE_NAME='complete data backup' ORDER BY SYS_START_TIME DESC"
+echo ""
+echo "=== Last Log Backup ==="
+hdbsql -i 00 -u SYSTEM -p &lt;password&gt; "SELECT TOP 1 * FROM M_BACKUP_CATALOG WHERE ENTRY_TYPE_NAME='log backup' ORDER BY SYS_START_TIME DESC"`,
+
+  '/etc/hosts':`127.0.0.1   localhost
+10.10.1.51  s4happ01 s4happ01.corp.com
+10.10.1.52  s4hdb01  s4hdb01.corp.com
+10.10.1.53  s4happ02 s4happ02.corp.com`,
+
+  '/etc/fstab':`/dev/sda1  /              ext4  defaults          1 1
+/dev/sdb1  /hana/shared   xfs   defaults,noatime  0 0
+/dev/sdb2  /hana/data     xfs   defaults,noatime  0 0
+/dev/sdb3  /hana/log      xfs   defaults,noatime  0 0
+/dev/sdb4  /hana/backup   xfs   defaults,noatime  0 0`,
+
+  '/var/log/messages':`May  8 09:14:00 s4hdb01 kernel: EXT4-fs (sda1): re-mounted
+May  8 09:14:01 s4hdb01 sapstartsrv: starting SAP HANA instance S4H HDB00
+May  8 09:14:03 s4hdb01 hdbdaemon: nameserver started (PID 34765)
+May  8 09:14:05 s4hdb01 hdbdaemon: indexserver started (PID 34890)
+May  8 09:14:11 s4hdb01 hdbdaemon: all services started, system RUNNING`,
+};
+
+/* ───────────────────────────────────────────
+   활성 FS/FILES 참조 (탭 전환 시 교체)
+─────────────────────────────────────────── */
+let FS=FS_AP, FILES=FILES_AP;
+
+/* ───────────────────────────────────────────
+   유틸 함수
+─────────────────────────────────────────── */
+function gp(){return user==='root'?`root@${HOST}:${cwd}#`:`${user}@${HOST}:${cwd}>`;}
+function up(){document.getElementById('pl').textContent=gp();}
+
+function ap(text,cls=''){
+  const o=document.getElementById('output');
+  const d=document.createElement('div');
+  d.className='ln'+(cls?' '+cls:'');
+  d.textContent=text;
+  o.appendChild(d);
+  o.scrollTop=o.scrollHeight;
+}
+function apl(lines,cls=''){lines.forEach(l=>ap(l,cls));}
+function apc(cmd){ap(gp()+' '+cmd,'mu');}
+
+function rp(p){
+  if(!p)return cwd;
+  if(p.startsWith('/'))return p.replace(/\/+$/,'')||'/';
+  const pts=cwd.split('/').filter(Boolean);
+  p.split('/').forEach(s=>{
+    if(s==='..')pts.length&&pts.pop();
+    else if(s!=='.')pts.push(s);
+  });
+  return'/'+pts.join('/');
+}
+
+function isFile(path){
+  const par=path.split('/').slice(0,-1).join('/')||'/';
+  const name=path.split('/').pop();
+  return FS[par]&&FS[par].includes(name)&&!FS[path];
+}
+
+/* ───────────────────────────────────────────
+   탭 전환
+─────────────────────────────────────────── */
+function switchTab(tab){
+  if(activeTab===tab)return;
+
+  // 현재 탭 상태 저장
+  if(activeTab==='ap'){apCwd=cwd;apUser=user;}
+  else{dbCwd=cwd;dbUser=user;}
+
+  activeTab=tab;
+
+  // 대상 탭 상태 복원
+  if(tab==='ap'){
+    cwd=apCwd;user=apUser;HOST=AP_HOST;FS=FS_AP;FILES=FILES_AP;
+  }else{
+    cwd=dbCwd;user=dbUser;HOST=DB_HOST;FS=FS_DB;FILES=FILES_DB;
+  }
+
+  // UI 업데이트
+  document.getElementById('tab-ap').className='stab'+(tab==='ap'?' on':'');
+  document.getElementById('tab-db').className='stab'+(tab==='db'?' on':'');
+  document.getElementById('hb-ap').style.display=tab==='ap'?'flex':'none';
+  document.getElementById('hb-db').style.display=tab==='db'?'flex':'none';
+  document.getElementById('tt-title').textContent=tab==='ap'
+    ?'SAP Basis Training Terminal v2 — AP Server (SLES 15 SP4) — SID: S4H'
+    :'SAP Basis Training Terminal v2 — DB Server (SLES 15 SP4) — SID: S4H / HANA 2.0';
+
+  document.getElementById('output').innerHTML='';
+  pagerQuit();
+  up();
+
+  if(tab==='ap'){
+    apl(['SUSE Linux Enterprise Server 15 SP4',`Kernel 5.14.21-150400.24.81-default (${AP_HOST})`,'Last login: Mon May 05 18:31:02 2026 from 10.10.1.10'],'mu');
+    apl(['','SAP BASIS TRAINING TERMINAL v2 — AP Server Simulator',`SID: S4H  |  Instance: D00  |  Host: ${AP_HOST}  |  User: ${apUser}`,'SAP System Status: '+(sapOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  Kernel 753','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
+  }else{
+    apl(['SUSE Linux Enterprise Server 15 SP4',`Kernel 5.14.21-150400.24.81-default (${DB_HOST})`,'Last login: Mon May 05 18:35:10 2026 from 10.10.1.51'],'mu');
+    apl(['','SAP BASIS TRAINING TERMINAL v2 — DB Server Simulator',`SID: S4H  |  Instance: HDB00  |  Host: ${DB_HOST}  |  User: ${dbUser}`,'HANA Status: '+(dbOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  HANA 2.00.067','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
+  }
+}
+
+/* ───────────────────────────────────────────
+   페이저 (less/more)
+─────────────────────────────────────────── */
+function showPager(lines){
+  pagerLines=lines;pagerPos=0;pagerActive=true;
+  document.getElementById('pager').style.display='flex';
+  showPagerPage();
+}
+function showPagerPage(){
+  const chunk=20;
+  pagerLines.slice(pagerPos,pagerPos+chunk).forEach(l=>ap(l));
+  pagerPos+=chunk;
+  document.getElementById('pg-info').textContent=`(${Math.min(pagerPos,pagerLines.length)}/${pagerLines.length}행)`;
+  if(pagerPos>=pagerLines.length)pagerQuit();
+}
+function pagerNext(){if(pagerActive)showPagerPage();}
+function pagerQuit(){
+  pagerActive=false;
+  document.getElementById('pager').style.display='none';
+  pagerLines=[];pagerPos=0;
+}
+
+/* ───────────────────────────────────────────
+   명령어별 처리 함수
+─────────────────────────────────────────── */
+function doGrep(pattern,filePath,opts){
+  const target=rp(filePath);
+  let content=FILES[target];
+  if(!content){
+    if(FS[target])return ap(`grep: ${filePath}: Is a directory`,'er');
+    if(!isFile(target))return ap(`grep: ${filePath}: No such file or directory`,'er');
+    content='';
+  }
+  const invert=opts.includes('v'),ci=opts.includes('i'),linenum=opts.includes('n');
+  const re=new RegExp(pattern,ci?'i':'');
+  const matched=content.split('\n').filter(l=>invert?!re.test(l):re.test(l));
+  if(!matched.length){ap('(일치하는 행 없음)','mu');return;}
+  matched.forEach((l,i)=>{
+    const isErr=/(ERROR|FAIL)/i.test(l),isWarn=/WARN/i.test(l);
+    ap(linenum?`${i+1}:${l}`:l,isErr?'er':isWarn?'wa':'');
+  });
+}
+
+function doTail(args){
+  let n=20,follow=false,file='';
+  for(let i=0;i<args.length;i++){
+    if(args[i]==='-f')follow=true;
+    else if(args[i]==='-n')n=parseInt(args[++i])||20;
+    else if(/^-\d+$/.test(args[i]))n=parseInt(args[i].slice(1));
+    else file=args[i];
+  }
+  const target=rp(file);
+  const content=FILES[target];
+  if(!content){
+    if(!isFile(target))ap(`tail: ${file}: No such file or directory`,'er');
+    return;
+  }
+  content.split('\n').slice(-n).forEach(l=>{ap(l,/(ERROR|FAIL)/i.test(l)?'er':'');});
+  if(follow){
+    ap('(tail -f 시뮬레이션: 실시간 추적 중... Ctrl+C 로 종료)','wa');
+    let cnt=0;
+    const isDB=activeTab==='db';
+    const msgs=isDB?[
+      `[3${Math.floor(4765+cnt)}]{-1}[-1/-1] 2026-05-08 09:4${cnt}:00.000000 i nameserver     RowEngine.cc : processing query`,
+      `[3${Math.floor(4890+cnt)}]{-1}[-1/-1] 2026-05-08 09:4${cnt}:01.000000 i indexserver    AttributeEngine.cc : memory delta merge started`,
+      `[3${Math.floor(4890+cnt)}]{-1}[-1/-1] 2026-05-08 09:4${cnt}:02.000000 i indexserver    AttributeEngine.cc : delta merge complete`,
+    ]:[
+      `M  Wed May 07 09:4${cnt}:00 2026`,
+      `M  ThRqNew: new request from ICM (client 10.10.1.10)`,
+      `M  ThVBEnd: WP back to free state (type DIA, no.${cnt%6})`,
+    ];
+    const tid=setInterval(()=>{
+      cnt++;
+      ap(msgs[cnt%msgs.length],'mu');
+      document.getElementById('output').scrollTop=99999;
+      if(cnt>=6)clearInterval(tid);
+    },1200);
+  }
+}
+
+function doFind(args){
+  let path='.',name='',type='';
+  for(let i=0;i<args.length;i++){
+    if(args[i]==='-name')name=args[++i]||'';
+    else if(args[i]==='-type')type=args[++i]||'';
+    else if(!args[i].startsWith('-'))path=args[i];
+  }
+  const base=rp(path),results=[];
+  function walk(dir){
+    (FS[dir]||[]).forEach(e=>{
+      const full=(dir==='/'?'':dir)+'/'+e;
+      const isDir=!!FS[full];
+      const mName=!name||new RegExp('^'+name.replace(/\*/g,'.*').replace(/\?/g,'.')+'$').test(e);
+      const mType=!type||(type==='d'&&isDir)||(type==='f'&&!isDir);
+      if(mName&&mType)results.push(full);
+      if(isDir)walk(full);
+    });
+  }
+  walk(base);
+  if(!results.length)ap('(검색 결과 없음)','mu');
+  else results.forEach(r=>ap(r));
+}
+
+function doVi(args){
+  if(!args[0])return ap('사용법: vi <파일>','wa');
+  const target=rp(args[0]),content=FILES[target];
+  if(FS[target])return ap(`vi: ${args[0]}: Is a directory`,'er');
+  if(!content&&!isFile(target))return ap(`vi: ${args[0]}: No such file or directory`,'er');
+  ap(`"${args[0]}" (읽기 전용 — 시뮬레이터)`,'wa');
+  ap('─'.repeat(50),'mu');
+  if(content)content.split('\n').forEach((l,i)=>ap(`${String(i+1).padStart(3)}  ${l}`));
+  else ap('(내용 없음)','mu');
+  ap('─'.repeat(50),'mu');
+  ap(`"${args[0]}" ${(content||'').split('\n').length}L  (읽기전용)  :q 종료`,'mu');
+}
+
+/* ───────────────────────────────────────────
+   명령어 핸들러 테이블 (CMDS)
+─────────────────────────────────────────── */
+const CMDS={
+
+  help(){
+    if(activeTab==='db'){
+      apl([
+        '─── SAP Basis OS Training Terminal v2 (DB Server) ──────────────',
+        '  [HANA 기동/정지 — HDB 방식]',
+        '    HDB start      HDB stop      HDB info      HDB version',
+        '',
+        '  [HANA 기동/정지 — sapcontrol 방식]',
+        '    sapcontrol -nr 00 -function Start',
+        '    sapcontrol -nr 00 -function Stop',
+        '    sapcontrol -nr 00 -function StopWait',
+        '',
+        '  [HANA 상태 조회 — sapcontrol]',
+        '    sapcontrol -nr 00 -function GetProcessList',
+        '    sapcontrol -nr 00 -function GetSystemInstanceList',
+        '    sapcontrol -nr 00 -function GetAlertTree',
+        '    sapcontrol -nr 00 -function GetVersionInfo',
+        '    sapcontrol -nr 00 -function ParameterValue <param>',
+        '',
+        '  [HANA SQL]',
+        '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_SERVICES"',
+        '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_DATABASES"',
+        '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_DISK_USAGE"',
+        '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_BACKUP_CATALOG"',
+        '',
+        '  [HANA 진단]',
+        '    hdbcons "replication info"',
+        '    hdbbackupdiag --check',
+        '',
+        '  [파일시스템]',
+        '    ls [-la] [path]    cd [path]    cat <file>    pwd',
+        '    vi <file>    less <file>    find <path> -name "*.trc"',
+        '',
+        '  [텍스트 처리]',
+        '    grep [-v|-i|-n] <pattern> <file>    tail [-f] <file>',
+        '    head [-n N] <file>    wc -l <file>',
+        '',
+        '  [OS 리소스]',
+        '    df -h    free -m    top    ps aux    netstat -tlnp',
+        '',
+        '  [환경/기타]',
+        '    env | grep HDB    hostname    date    whoami',
+        '    su - s4hdb01adm    su - root    exit    clear    history',
+        '──────────────────────────────────────────────────────────────',
+      ]);
+    }else{
+      apl([
+        '─── SAP Basis OS Training Terminal v2 ────────────────────────',
+        '  [SAP 기동/정지]',
+        '    startsap [r3|ascs]       stopsap [r3|ascs]',
+        '',
+        '  [sapcontrol]',
+        '    sapcontrol -nr 00 -function GetProcessList',
+        '    sapcontrol -nr 00 -function GetSystemInstanceList',
+        '    sapcontrol -nr 00 -function GetAlertTree',
+        '    sapcontrol -nr 00 -function ParameterValue <param>',
+        '',
+        '  [SAP 진단]',
+        '    dpmon          sm50          R3trans -d',
+        '    lgtst /H/s4happ01 /S/sapmsS4H',
+        '',
+        '  [파일시스템]',
+        '    ls [-la] [path]    cd [path]    cat <file>    pwd',
+        '    vi <file>    less <file>    head [-n N] <file>',
+        '    find <path> -name "*.log"    find <path> -type f',
+        '    chmod <mode> <file>    chown <user> <file>',
+        '',
+        '  [텍스트 처리]',
+        '    grep [-v|-i|-n] <pattern> <file>',
+        '    tail [-f] [-n N] <file>',
+        '    head [-n N] <file>    wc -l <file>',
+        '    cat <file> | sort    cat <file> | uniq',
+        '',
+        '  [파이프 & 리다이렉션]',
+        '    ps aux | grep dw',
+        '    tail -f dev_w0 | grep ERROR',
+        '    cat file > /tmp/out.txt',
+        '',
+        '  [OS 리소스]',
+        '    df -h    free -m    top    uptime    vmstat',
+        '    ps aux [| grep <name>]',
+        '    netstat -tlnp    ss -tlnp    lsof -i :<port>',
+        '',
+        '  [환경/기타]',
+        '    env | grep SAP    hostname    date    whoami    uname -a',
+        '    su - s4hadm    su - root    exit    clear    history',
+        '──────────────────────────────────────────────────────────────',
+      ]);
+    }
+  },
+
+  clear(){document.getElementById('output').innerHTML='';},
+  pwd(){ap(cwd);},
+  whoami(){ap(user);},
+  hostname(){ap(HOST);},
+  date(){ap(new Date().toString());},
+  uptime(){
+    const load=activeTab==='db'?'0.82, 0.91, 1.03':'1.23, 1.45, 1.51';
+    ap(` 09:42:17 up 14 days,  3:22,  2 users,  load average: ${load}`);
+  },
+  history(){hist.slice(-30).forEach((h,i)=>ap(`  ${String(i+1).padStart(3)}  ${h}`));},
+
+  uname(args){
+    if(args.includes('-a'))
+      ap(`Linux ${HOST} 5.14.21-150400.24.81-default #1 SMP PREEMPT_DYNAMIC Wed Jan 31 06:34:21 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux`);
+    else ap('Linux');
+  },
+
+  ls(args){
+    let showHidden=false,longFmt=false,path='';
+    args.forEach(a=>{
+      if(a.startsWith('-')){if(a.includes('a'))showHidden=true;if(a.includes('l'))longFmt=true;}
+      else path=a;
+    });
+    const target=rp(path||'');
+    const entries=FS[target];
+    if(!entries){
+      if(isFile(rp(path))){ap(`(파일: ${path})`,'mu');return;}
+      ap(`ls: cannot access '${path||target}': No such file or directory`,'er');return;
+    }
+    if(longFmt){
+      ap(`total ${entries.length*4}`,'mu');
+      entries.forEach(e=>{
+        const full=(target==='/'?'':target)+'/'+e;
+        const isDir=!!FS[full];
+        ap(`${isDir?'drwxr-xr-x':'-rw-r--r--'}  2 ${user} sapsys ${isDir?'4096':(Math.floor(Math.random()*80+4)+'K').padStart(6)} May  8 09:14 ${isDir?e+'/':e}`);
+      });
+    }else{
+      ap(entries.map(e=>{const f=(target==='/'?'':target)+'/'+e;return FS[f]?e+'/':e;}).join('   '));
+    }
+  },
+
+  cd(args){
+    const target=rp(args[0]||'/home/'+user);
+    if(FS[target]){cwd=target;up();return;}
+    const par=target.split('/').slice(0,-1).join('/')||'/';
+    const nm=target.split('/').pop();
+    if(FS[par]&&FS[par].includes(nm))ap(`bash: cd: ${args[0]}: Not a directory`,'er');
+    else ap(`bash: cd: ${args[0]}: No such file or directory`,'er');
+  },
+
+  cat(args){
+    if(!args.length){ap('Usage: cat <file>','wa');return;}
+    const target=rp(args[0]);
+    if(FILES[target]){
+      FILES[target].split('\n').forEach(l=>ap(l,/(ERROR|FAIL)/i.test(l)?'er':/WARN/i.test(l)?'wa':''));
+      return;
+    }
+    if(FS[target])return ap(`cat: ${args[0]}: Is a directory`,'er');
+    if(isFile(target))return ap('(파일 내용 없음 — 시뮬레이션 환경)','mu');
+    ap(`cat: ${args[0]}: No such file or directory`,'er');
+  },
+
+  head(args){
+    let n=10,file='';
+    for(let i=0;i<args.length;i++){
+      if(args[i]==='-n')n=parseInt(args[++i])||10;
+      else if(/^-\d+$/.test(args[i]))n=parseInt(args[i].slice(1));
+      else file=args[i];
+    }
+    const content=FILES[rp(file)];
+    if(!content){if(!isFile(rp(file)))ap(`head: ${file}: No such file or directory`,'er');return;}
+    content.split('\n').slice(0,n).forEach(l=>ap(l));
+  },
+
+  wc(args){
+    const file=args.find(a=>!a.startsWith('-'));
+    if(!file)return ap('사용법: wc -l <file>','wa');
+    const content=FILES[rp(file)];
+    if(!content){if(!isFile(rp(file)))ap(`wc: ${file}: No such file or directory`,'er');return;}
+    ap(`${String(content.split('\n').length).padStart(6)} ${file}`);
+  },
+
+  tail(args){doTail(args);},
+  grep(args){
+    const flags=[],rest=[];
+    args.forEach(a=>a.startsWith('-')&&a.length>1?flags.push(...a.slice(1)):rest.push(a));
+    const opts=flags.join(''),pattern=rest[0]||'',file=rest[1]||'';
+    if(!pattern)return ap('사용법: grep [-v|-i|-n] <pattern> <file>','wa');
+    if(!file)return ap('(파이프 모드: 위 출력에서 패턴 검색)','mu');
+    doGrep(pattern,file,opts);
+  },
+  find(args){doFind(args);},
+  vi(args){doVi(args);},
+  vim(args){doVi(args);},
+  less(args){
+    if(!args[0])return ap('사용법: less <file>','wa');
+    const content=FILES[rp(args[0])];
+    if(!content){if(!isFile(rp(args[0])))ap(`less: ${args[0]}: No such file or directory`,'er');return;}
+    showPager(content.split('\n'));
+  },
+  more(args){CMDS.less(args);},
+  sort(){ap('(파이프 내 sort 적용됨)','mu');},
+  uniq(){ap('(파이프 내 uniq 적용됨)','mu');},
+
+  chmod(args){
+    if(args.length<2)return ap('사용법: chmod <mode> <file>','wa');
+    const target=rp(args[1]);
+    if(!isFile(target)&&!FS[target])return ap(`chmod: ${args[1]}: No such file or directory`,'er');
+    ap(`chmod ${args[0]} ${args[1]}  (적용됨)`,'su');
+  },
+  chown(args){
+    if(args.length<2)return ap('사용법: chown <owner> <file>','wa');
+    const target=rp(args[1]);
+    if(!isFile(target)&&!FS[target])return ap(`chown: ${args[1]}: No such file or directory`,'er');
+    ap(`chown ${args[0]} ${args[1]}  (적용됨)`,'su');
+  },
+
+  ps(args){
+    const joined=args.join(' ');
+    const grepPat=(joined.match(/grep\s+(\S+)/)||[])[1]||'';
+    let procs;
+    if(activeTab==='db'){
+      procs=[
+        {u:'root',      pid:1,     cpu:'0.0',mem:'0.0', cmd:'/sbin/init splash'},
+        {u:'root',      pid:512,   cpu:'0.0',mem:'0.0', cmd:'/usr/sbin/sshd -D'},
+        {u:'s4hdb01adm',pid:34760, cpu:'0.1',mem:'0.2', cmd:'sapstartsrv pf=/usr/sap/S4H/SYS/profile/S4H_HDB00_s4hdb01'},
+        {u:'s4hdb01adm',pid:34765, cpu:'0.3',mem:'1.1', cmd:'hdbdaemon'},
+        {u:'s4hdb01adm',pid:34766, cpu:'1.2',mem:'3.4', cmd:'hdbnameserver'},
+        {u:'s4hdb01adm',pid:34767, cpu:'0.4',mem:'0.9', cmd:'hdbpreprocessor'},
+        {u:'s4hdb01adm',pid:34890, cpu:'8.7',mem:'28.3',cmd:'hdbindexserver -port 30003'},
+        {u:'s4hdb01adm',pid:34891, cpu:'0.2',mem:'0.5', cmd:'hdbstatisticsserver'},
+        {u:'s4hdb01adm',pid:34892, cpu:'0.1',mem:'0.4', cmd:'hdbwebdispatcher'},
+        {u:user,        pid:39981, cpu:'0.0',mem:'0.0', cmd:'-bash'},
+      ];
+    }else{
+      procs=[
+        {u:'root',   pid:1,    cpu:'0.0',mem:'0.0',cmd:'/sbin/init splash'},
+        {u:'root',   pid:512,  cpu:'0.0',mem:'0.0',cmd:'/usr/sbin/sshd -D'},
+        {u:'s4hadm', pid:28472,cpu:'2.1',mem:'5.3',cmd:`disp+work pf=/usr/sap/S4H/SYS/profile/S4H_D00_s4happ01`},
+        {u:'s4hadm', pid:28473,cpu:'0.3',mem:'0.8',cmd:'disp+work (DIA-0)'},
+        {u:'s4hadm', pid:28474,cpu:'0.3',mem:'0.8',cmd:'disp+work (DIA-1)'},
+        {u:'s4hadm', pid:28475,cpu:'0.2',mem:'0.8',cmd:'disp+work (DIA-2)'},
+        {u:'s4hadm', pid:28476,cpu:'0.2',mem:'0.8',cmd:'disp+work (BTC-0)'},
+        {u:'s4hadm', pid:28477,cpu:'0.1',mem:'0.8',cmd:'disp+work (UPD-0)'},
+        {u:'s4hadm', pid:28490,cpu:'0.4',mem:'1.2',cmd:'icman pf=/usr/sap/S4H/SYS/profile/S4H_D00_s4happ01'},
+        {u:'s4hadm', pid:28483,cpu:'0.1',mem:'0.3',cmd:'gwrd pf=/usr/sap/S4H/SYS/profile/S4H_D00_s4happ01'},
+        {u:user,     pid:29981,cpu:'0.0',mem:'0.0',cmd:'-bash'},
+      ];
+    }
+    ap(`USER       PID    %CPU %MEM COMMAND`,'mu');
+    const active=activeTab==='db'?dbOn:sapOn;
+    procs
+      .filter(p=>!grepPat||p.cmd.includes(grepPat)||p.u.includes(grepPat))
+      .filter(p=>active||p.pid<10000||(activeTab==='db'?p.pid===39981:p.pid===29981))
+      .forEach(p=>ap(`${p.u.padEnd(12)} ${String(p.pid).padEnd(7)} ${p.cpu.padStart(4)} ${p.mem.padStart(5)} ${p.cmd}`));
+    if(!active)ap(`(${activeTab==='db'?'HANA':'SAP'} 프로세스 없음 — 정지 상태)`,'wa');
+  },
+
+  df(){
+    if(activeTab==='db'){
+      apl([
+        'Filesystem              Size  Used Avail Use% Mounted on',
+        '/dev/sda1                50G   18G   32G  36% /',
+        '/dev/sdb1               300G  118G  182G  39% /hana/shared',
+        '/dev/sdb2               200G   48G  152G  24% /hana/data',
+        '/dev/sdb3               100G   12G   88G  12% /hana/log',
+        '/dev/sdb4               500G  180G  320G  36% /hana/backup',
+        'tmpfs                    32G  6.1G   26G  19% /dev/shm',
+      ]);
+    }else{
+      apl([
+        'Filesystem              Size  Used Avail Use% Mounted on',
+        '/dev/sda1                50G   22G   28G  44% /',
+        '/dev/sda3                30G   18G   12G  60% /usr/sap',
+        '/dev/sdb1               200G   87G  113G  44% /sapmnt',
+        '/dev/sdb2               100G   34G   66G  34% /usr/sap/trans',
+        'tmpfs                    16G  4.2G   12G  26% /dev/shm',
+      ]);
+    }
+  },
+
+  free(){
+    if(activeTab==='db'){
+      apl([
+        '              total        used        free      shared  buff/cache   available',
+        'Mem:          65536       48231        3221        1032       14082       15524',
+        'Swap:         16383         128       16255',
+      ]);
+    }else{
+      apl([
+        '              total        used        free      shared  buff/cache   available',
+        'Mem:          32072       18431        4221        1032        9420       12320',
+        'Swap:          8191         512        7679',
+      ]);
+    }
+  },
+
+  vmstat(){
+    apl([
+      'procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----',
+      ' r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st',
+      ' 2  0 524288 4321024 102400 9626624   0    1    12    44 1823 3241 12  2 85  1  0',
+    ]);
+  },
+
+  top(){
+    if(activeTab==='db'){
+      apl([
+        'top - 09:42:17 up 14 days, 3:22,  2 users,  load average: 0.82, 0.91, 1.03',
+        'Tasks: 198 total,   2 running, 196 sleeping,   0 stopped,   0 zombie',
+        '%Cpu(s): 9.1 us,  0.8 sy,  0.0 ni, 88.9 id,  1.0 wa,  0.0 hi,  0.2 si',
+        'MiB Mem : 65536.0 total,  3221.0 free, 48231.0 used, 14082.0 buff/cache',
+        '',
+        '  PID USER         PR  NI    VIRT    RES S  %CPU  %MEM     TIME+ COMMAND',
+        '34890 s4hdb01adm   20   0  18.5g   9.2g S   8.7  28.3 312:44 hdbindexserver',
+        '34766 s4hdb01adm   20   0 2254188  1.1g S   1.2   3.4 121:05 hdbnameserver',
+        '34767 s4hdb01adm   20   0  487654  292m S   0.4   0.9  44:18 hdbpreprocessor',
+        '34765 s4hdb01adm   20   0  124512   71m S   0.3   1.1  22:33 hdbdaemon',
+      ]);
+    }else{
+      apl([
+        'top - 09:42:17 up 14 days, 3:22,  2 users,  load average: 1.23, 1.45, 1.51',
+        'Tasks: 212 total,   1 running, 211 sleeping,   0 stopped,   0 zombie',
+        '%Cpu(s): 12.4 us,  1.2 sy,  0.0 ni, 85.2 id,  1.0 wa,  0.0 hi,  0.2 si',
+        'MiB Mem : 32072.0 total,  4221.0 free, 18431.0 used,  9420.0 buff/cache',
+        '',
+        '  PID USER      PR  NI    VIRT    RES S  %CPU  %MEM     TIME+ COMMAND',
+        '28472 s4hadm    20   0 4521852 867244 S  18.3   5.3 721:12 disp+work',
+        '28490 s4hadm    20   0  987654 196432 S   3.2   1.2 131:05 icman',
+        '28473 s4hadm    20   0 1234567 128412 S   2.1   0.8  98:44 disp+work(DIA-0)',
+        '28483 s4hadm    20   0  456789  51200 S   0.1   0.3  44:18 gwrd',
+      ]);
+    }
+    ap('(스냅샷 — 실제 top은 실시간 갱신)','mu');
+  },
+
+  netstat(){
+    if(activeTab==='db'){
+      apl([
+        'Proto Recv-Q Send-Q Local Address      Foreign Address  State    PID/Program',
+        'tcp        0      0 0.0.0.0:22         0.0.0.0:*        LISTEN   512/sshd',
+        'tcp        0      0 0.0.0.0:30001      0.0.0.0:*        LISTEN   34766/hdbnameserver',
+        'tcp        0      0 0.0.0.0:30003      0.0.0.0:*        LISTEN   34890/hdbindexserver',
+        'tcp        0      0 0.0.0.0:30010      0.0.0.0:*        LISTEN   34767/hdbpreprocessor',
+        'tcp        0      0 0.0.0.0:30013      0.0.0.0:*        LISTEN   34765/hdbdaemon',
+        'tcp        0      0 0.0.0.0:30015      0.0.0.0:*        LISTEN   34890/hdbindexserver',
+        'tcp        0      0 0.0.0.0:30017      0.0.0.0:*        LISTEN   34891/hdbstatisticsserver',
+        'tcp        0      0 0.0.0.0:30040      0.0.0.0:*        LISTEN   34892/hdbwebdispatcher',
+      ]);
+    }else{
+      apl([
+        'Proto Recv-Q Send-Q Local Address      Foreign Address  State    PID/Program',
+        'tcp        0      0 0.0.0.0:22         0.0.0.0:*        LISTEN   512/sshd',
+        'tcp        0      0 0.0.0.0:8000       0.0.0.0:*        LISTEN   28490/icman',
+        'tcp        0      0 0.0.0.0:8100       0.0.0.0:*        LISTEN   28472/disp+work',
+        'tcp        0      0 0.0.0.0:44300      0.0.0.0:*        LISTEN   28490/icman',
+        'tcp        0      0 0.0.0.0:3600       0.0.0.0:*        LISTEN   28472/disp+work',
+      ]);
+    }
+  },
+
+  ss(args){CMDS.netstat(args);},
+
+  lsof(args){
+    const portArg=args.find(a=>a.startsWith(':'));
+    const port=portArg?portArg.slice(1):'';
+    let all;
+    if(activeTab==='db'){
+      all=[
+        'hdbindexserver  34890 s4hdb01adm  5u  IPv4  TCP *:30003 (LISTEN)',
+        'hdbindexserver  34890 s4hdb01adm  6u  IPv4  TCP *:30015 (LISTEN)',
+        'hdbnameserver   34766 s4hdb01adm  4u  IPv4  TCP *:30001 (LISTEN)',
+        'hdbdaemon       34765 s4hdb01adm  3u  IPv4  TCP *:30013 (LISTEN)',
+        'hdbwebdispatcher 34892 s4hdb01adm 4u  IPv4  TCP *:30040 (LISTEN)',
+        'sshd              512       root  3u  IPv4  TCP *:22 (LISTEN)',
+      ];
+    }else{
+      all=[
+        'icman   28490 s4hadm  8u  IPv4  TCP *:8000 (LISTEN)',
+        'icman   28490 s4hadm  9u  IPv4  TCP *:44300 (LISTEN)',
+        'disp+w  28472 s4hadm  6u  IPv4  TCP *:8100 (LISTEN)',
+        'sshd      512   root  3u  IPv4  TCP *:22 (LISTEN)',
+      ];
+    }
+    ap('COMMAND          PID    USER        FD   TYPE  NAME','mu');
+    all.filter(l=>!port||l.includes(':'+port)).forEach(l=>ap(l));
+  },
+
+  env(args){
+    const joined=args.join(' ');
+    let all;
+    if(activeTab==='db'){
+      all=[
+        'SAPSYSTEMNAME=S4H','SAPSYSTEM=00',`SAPGLOBALHOST=${DB_HOST}`,
+        'HDB_NR=00','HANA_SID=S4H',
+        'DIR_INSTANCE=/usr/sap/S4H/HDB00',
+        'DIR_EXECUTABLE=/usr/sap/S4H/HDB00/exe',
+        'SECUDIR=/usr/sap/S4H/HDB00/exe/sec',
+        'PATH=/usr/sap/S4H/HDB00/exe:/hana/shared/S4H/hdbclient:/usr/local/bin:/usr/bin:/bin',
+        `HOME=/home/${user}`,'SHELL=/bin/bash','LANG=en_US.UTF-8',
+        'LD_LIBRARY_PATH=/usr/sap/S4H/HDB00/exe',
+        'HDBSQL_PATH=/hana/shared/S4H/hdbclient',
+      ];
+    }else{
+      all=[
+        'SAPSYSTEMNAME=S4H','SAPSYSTEM=00',`SAPGLOBALHOST=${AP_HOST}`,
+        'DIR_LIBRARY=/usr/sap/S4H/D00/exe','DIR_CT_RUN=/usr/sap/S4H/D00/exe',
+        'DIR_EXECUTABLE=/usr/sap/S4H/D00/exe',`SAPLOCALHOSTFULL=${AP_HOST}.corp.com`,
+        'dbs_hdb_dbhost=s4hdb01.corp.com','dbs_hdb_dbname=S4H','dbs_hdb_schema=SAPABAP1',
+        'PATH=/usr/sap/S4H/D00/exe:/usr/local/bin:/usr/bin:/bin',
+        `HOME=/home/${user}`,'SHELL=/bin/bash','LANG=en_US.UTF-8',
+      ];
+    }
+    const pat=(joined.match(/grep\s+(\S+)/)||[])[1]||'';
+    (pat?all.filter(e=>e.toLowerCase().includes(pat.toLowerCase())):all).forEach(l=>ap(l));
+  },
+
+  su(args){
+    const t=(args.join(' ').replace(/-/g,' ').trim().split(/\s+/).pop())||'root';
+    const valid=activeTab==='db'?['s4hdb01adm','root']:['s4hadm','root'];
+    if(valid.includes(t)){
+      user=t;
+      cwd=t==='root'?'/root':(activeTab==='db'?'/home/s4hdb01adm':'/home/s4hadm');
+      up();
+      ap(`[${t}@${HOST} ${cwd.split('/').pop()}]`,'su');
+    }else ap(`su: user ${t} does not exist`,'er');
+  },
+
+  exit(){
+    const defaultUser=activeTab==='db'?'s4hdb01adm':'s4hadm';
+    const defaultHome=activeTab==='db'?'/home/s4hdb01adm':'/home/s4hadm';
+    if(user!==defaultUser){user=defaultUser;cwd=defaultHome;up();ap('logout','mu');}
+    else ap('(세션 종료 불가 — 시뮬레이터)','mu');
+  },
+
+  /* ─── AP 전용 명령어 ─────────────────────── */
+
+  startsap(args){
+    if(activeTab!=='ap'){ap('bash: startsap: command not found','er');return;}
+    if(sapOn){ap('SAP system already started','wa');return;}
+    ap('Starting SAP System S4H ...');
+    ap('Checking smda97 ... not running','mu');
+    setTimeout(()=>{
+      ap('Starting instance ASCS01');
+      setTimeout(()=>{
+        ap('  Message Server .... ok','su');
+        ap('  Enqueue Server .... ok','su');
+        ap('Starting instance D00');
+        setTimeout(()=>{
+          ap('  Dispatcher     .... ok','su');
+          ap('  ICM            .... ok','su');
+          if(!dbOn){
+            // DB가 정지 상태면 Work Process가 DB 접속 실패로 기동 불가
+            ap('  Work Processes .... failed','er');
+            ap('ERROR: db_connect (s4hdb01.corp.com:30015) failed — HANA not running','er');
+            ap('ERROR: Startup of work processes FAILED','er');
+            ap('Stopping instance D00 due to startup error ...','wa');
+            ap('SAP System S4H start FAILED. (DB를 먼저 기동하십시오)','er');
+            return;
+          }
+          ap('  Work Processes .... ok','su');
+          ap('SAP System S4H started.','su');
+          sapOn=true;
+        },700);
+      },600);
+    },400);
+  },
+
+  stopsap(){
+    if(activeTab!=='ap'){ap('bash: stopsap: command not found','er');return;}
+    if(!sapOn){ap('SAP system already stopped','wa');return;}
+    ap('Stopping SAP System S4H ...');
+    setTimeout(()=>{
+      ap('  Stopping Work Processes .... stopped','wa');
+      ap('  Stopping ICM            .... stopped','wa');
+      ap('  Stopping Dispatcher     .... stopped','wa');
+      setTimeout(()=>{
+        ap('  Stopping ASCS01         .... stopped','wa');
+        ap('SAP System S4H stopped.','su');
+        sapOn=false;
+      },600);
+    },500);
+  },
+
+  sapcontrol(args){
+    const joined=args.join(' ');
+    const func=(joined.match(/-function\s+(\S+)/)||[])[1]||'';
+    const param=(joined.match(/-function\s+\S+\s+(\S+)/)||[])[1]||'';
+    const now=new Date();
+    const ts=`${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+
+    /* ── DB 서버 (HANA 인스턴스 제어) ── */
+    if(activeTab==='db'){
+      // Start / Stop 은 dbOn 상태와 무관하게 항상 시도 가능
+      if(func==='Start'||func==='StartSystem'){
+        ap(ts);ap(func);
+        if(dbOn){ap('OK','su');ap('Instance is already running','wa');return;}
+        ap('OK','su');
+        ap('Starting SAP HANA instance HDB00 ...','in');
+        setTimeout(()=>{
+          ap('  hdbdaemon         .... started','su');
+          setTimeout(()=>{
+            ap('  hdbnameserver     .... started','su');
+            ap('  hdbindexserver    .... started','su');
+            ap('  hdbwebdispatcher  .... started','su');
+            ap('SAP HANA HDB00 started successfully.','su');
+            dbOn=true;
+          },700);
+        },400);
+        return;
+      }
+      if(func==='Stop'||func==='StopSystem'||func==='StopWait'){
+        ap(ts);ap(func);
+        if(!dbOn){ap('OK','su');ap('Instance is already stopped','wa');return;}
+        ap('OK','su');
+        ap('Stopping SAP HANA instance HDB00 ...','in');
+        setTimeout(()=>{
+          ap('  hdbwebdispatcher  .... stopped','wa');
+          ap('  hdbindexserver    .... stopped','wa');
+          ap('  hdbnameserver     .... stopped','wa');
+          ap('  hdbdaemon         .... stopped','wa');
+          ap('SAP HANA HDB00 stopped.','su');
+          dbOn=false;
+        },800);
+        return;
+      }
+      // 기타 function: HANA가 정지 상태면 연결 불가 (GetSystemInstanceList 제외)
+      if(!dbOn&&func!=='GetSystemInstanceList'){
+        ap('FAIL: NIECONN_REFUSED (Connection refused)','er');
+        ap('sapcontrol: exit status: 3','er');return;
+      }
+      ap(ts);ap(func);
+      if(func==='GetProcessList'){
+        apl(['OK',
+          'name,                description,          dispstatus, textstatus, starttime,           elapsedtime, pid',
+          'hdbdaemon,           HDB Daemon,           GREEN,      Running,    2026/04/23 06:20:01,  338:22:16,   34765',
+          'hdbnameserver,       HDB NameServer,       GREEN,      Running,    2026/04/23 06:20:03,  338:22:14,   34766',
+          'hdbpreprocessor,     HDB Preprocessor,     GREEN,      Running,    2026/04/23 06:20:05,  338:22:12,   34767',
+          'hdbindexserver,      HDB IndexServer,      GREEN,      Running,    2026/04/23 06:20:07,  338:22:10,   34890',
+          'hdbstatisticsserver, HDB StatisticsServer, GREEN,      Running,    2026/04/23 06:20:09,  338:22:08,   34891',
+          'hdbwebdispatcher,    HDB Web Dispatcher,   GREEN,      Running,    2026/04/23 06:20:11,  338:22:06,   34892',
+        ],'su');
+      }else if(func==='GetSystemInstanceList'){
+        apl(['OK',
+          'hostname, instanceNr, httpPort, httpsPort, startPriority, features,              dispstatus',
+          `s4hdb01,  00,         50013,    50014,     0,             HDB|HDB_WORKER|HDB_STANDBY, ${dbOn?'GREEN':'GRAY'}`,
+        ],dbOn?'su':'wa');
+      }else if(func==='GetAlertTree'){
+        apl(['OK',
+          'NameServerMemory,   ,  , 72,  %',
+          'IndexServerMemory,  ,  , 65,  %',
+          'DataVolumeUsage,    ,  , 24,  %',
+          'LogVolumeUsage,     ,  , 12,  %',
+          'BackupAge,          ,  , 7,   hours',
+        ],'su');
+      }else if(func==='GetVersionInfo'){
+        apl(['OK',
+          'BuildVersion:   2.00.067.00.1685702766',
+          'BuildBranch:    hanab2sp06',
+          'BuildPlatform:  linuxx86_64',
+          'BuildDate:      2023-06-02 12:46:06',
+        ]);
+      }else if(func==='ParameterValue'){
+        const pv={
+          'indexserver/max_sessions':'5000',
+          'global/persistence/basepath_datavolumes':'/hana/data/S4H',
+          'global/persistence/basepath_logvolumes':'/hana/log/S4H',
+          'global/backup/data_backup_buffer_size':'2048',
+        };
+        ap('OK','su');
+        ap(`${param} = ${pv[param]||'(파라미터 없음)'}`);
+      }else if(!func){
+        ap('사용법: sapcontrol -nr 00 -function <FunctionName>','wa');
+      }else{
+        ap(`FAIL: method '${func}' not found`,'er');
+      }
+      return;
+    }
+
+    /* ── AP 서버 (ABAP 인스턴스 제어) ── */
+    if(!sapOn&&func!=='GetSystemInstanceList'){
+      ap('FAIL: NIECONN_REFUSED (Connection refused)','er');
+      ap('sapcontrol: exit status: 3','er');return;
+    }
+    ap(ts);ap(func);
+    if(func==='GetProcessList'){
+      const wpStatus=dbOn?'GREEN':'RED';
+      const wpText=dbOn?'Running':'Waiting for DB';
+      apl(['OK',
+        'name, description, dispstatus, textstatus, starttime, elapsedtime, pid',
+        `disp+work, Dispatcher,   ${wpStatus}, ${wpText}, 2026/04/23 06:20:11, 338:22:06, 28472`,
+        `igswd_mt,  IGS Watchdog, GREEN,       Running,         2026/04/23 06:20:13, 338:22:04, 28481`,
+        `gwrd,      Gateway,      GREEN,       Running,         2026/04/23 06:20:13, 338:22:04, 28483`,
+        `icman,     ICM,          GREEN,       Running,         2026/04/23 06:20:14, 338:22:03, 28490`,
+      ],dbOn?'':'wa');
+      if(!dbOn)ap('(WP가 DB 접속 대기 중 — DB 서버를 기동하십시오)','er');
+    }else if(func==='GetSystemInstanceList'){
+      apl(['OK',
+        'hostname, instanceNr, httpPort, httpsPort, startPriority, features,                    dispstatus',
+        `s4happ01, 00,         50013,    50014,     1,             MESSAGESERVER|ENQUE|ABAP,    ${sapOn?'GREEN':'GRAY'}`,
+        `s4hdb01,  00,         50013,    50014,     0,             HDB,                         ${dbOn?'GREEN':'GRAY'}`,
+      ],sapOn?'su':'wa');
+    }else if(func==='GetAlertTree'){
+      apl(['OK',
+        'ActualResponsetime,  ,  , 42, ms',
+        'FreeMemory,          ,  , 71, %',
+        'CPULoad,             ,  , 12, %',
+        'DiaWPs,              ,  , 6/6, available',
+      ],'su');
+    }else if(func==='ParameterValue'){
+      const pv={'rdisp/wp_no_dia':'6','rdisp/wp_no_btc':'3',
+        'icm/server_port_0':'PROT=HTTP,PORT=8000','em/initial_size_MB':'4096'};
+      ap('OK','su');
+      ap(`${param} = ${pv[param]||'(파라미터 없음)'}`);
+    }else if(!func){
+      ap('사용법: sapcontrol -nr 00 -function <FunctionName>','wa');
+    }else{
+      ap(`FAIL: method '${func}' not found`,'er');
+    }
+  },
+
+  dpmon(){
+    if(activeTab!=='ap'){ap('bash: dpmon: command not found','er');return;}
+    if(!sapOn){ap('DPMON: cannot connect to dispatcher','er');return;}
+    apl([
+      'DPMON (Dispatcher Monitor)  —  SID: S4H  Instance: D00',
+      '─────────────────────────────────────────────────────────',
+      'No  Type  PID    Status  Client  User         Program',
+      ' 0  DIA   28473  Wait    000     -            -',
+      ' 1  DIA   28474  Wait    100     TESTUSER     SAPMV45A',
+      ' 2  DIA   28475  Run     100     BASISADM     RSBDCSUB',
+      ' 3  DIA   28476  Wait    000     -            -',
+      ' 4  DIA   28477  PRIV    100     DEVUSER      -',
+      ' 5  DIA   28478  Wait    000     -            -',
+      ' 6  BTC   28479  Wait    000     -            -',
+      ' 7  BTC   28480  Run     000     -            RSSNAPDL',
+      ' 8  BTC   28481  Wait    000     -            -',
+      ' 9  SPO   28482  Wait    000     -            -',
+      '10  SPO   28483  Wait    000     -            -',
+      '11  UPD   28484  Wait    000     -            -',
+      '12  UPD2  28485  Wait    000     -            -',
+      '─────────────────────────────────────────────────────────',
+      'DIA: 6/6  BTC: 3/3  SPO: 2/2  UPD: 1/1  UPD2: 1/1',
+    ]);
+  },
+
+  sm50(args){CMDS.dpmon(args);},
+
+  R3trans(args){
+    if(activeTab!=='ap'){ap('bash: R3trans: command not found','er');return;}
+    if(args[0]==='-d'){
+      ap('This is R3trans version 6.26 (release 753 - 14.02.26 - 12:33:22).');
+      ap('unicode enabled version');
+      // R3trans는 DB에 직접 접속 — SAP 기동 여부와 무관하게 dbOn 체크
+      if(dbOn){
+        ap('Connect to database s4hdb01.corp.com S4H <dbs/hdb/schema=SAPABAP1>');
+        ap('Connected to DB (S4H on s4hdb01.corp.com)','su');
+        ap('R3trans finished (0000).','su');
+      }else{
+        ap('Connect to database s4hdb01.corp.com S4H <dbs/hdb/schema=SAPABAP1>');
+        ap('ERROR: db_connect failed — cannot connect to s4hdb01.corp.com:30015 (HANA not running)','er');
+        ap('R3trans finished (0012).','er');
+      }
+    }else{ap(`R3trans: unknown option '${args[0]}'`,'er');}
+  },
+
+  lgtst(){
+    if(activeTab!=='ap'){ap('bash: lgtst: command not found','er');return;}
+    ap(`Getting information about message server ${AP_HOST} / sapmsS4H ...`);
+    if(sapOn){
+      apl([`MSG server on host ${AP_HOST}, service sapmsS4H, sysid S4H`,
+        'Active clients:',`  s4happ01 (10.10.1.51)  00  Active`],'su');
+      ap('lgtst finished successfully','su');
+    }else{
+      ap('Error: cannot connect to message server','er');
+    }
+  },
+
+  /* ─── DB 전용 명령어 ─────────────────────── */
+
+  HDB(args){
+    if(activeTab!=='db'){ap('bash: HDB: command not found','er');return;}
+    const sub=args[0]||'';
+    if(sub==='start'){
+      if(dbOn){ap('HANA system already started','wa');return;}
+      ap(`Starting SAP HANA Database version 2.00.067 ...`);
+      setTimeout(()=>{
+        ap('  hdbdaemon         .... started (PID 34765)','su');
+        setTimeout(()=>{
+          ap('  hdbnameserver     .... started (PID 34766)','su');
+          ap('  hdbpreprocessor   .... started (PID 34767)','su');
+          setTimeout(()=>{
+            ap('  hdbindexserver    .... started (PID 34890)','su');
+            ap('  hdbstatisticsserver .... started (PID 34891)','su');
+            ap('  hdbwebdispatcher  .... started (PID 34892)','su');
+            ap('SAP HANA Database S4H started.','su');
+            dbOn=true;
+          },700);
+        },500);
+      },400);
+    }else if(sub==='stop'){
+      if(!dbOn){ap('HANA system already stopped','wa');return;}
+      ap('Stopping SAP HANA Database ...');
+      setTimeout(()=>{
+        ap('  hdbwebdispatcher  .... stopped','wa');
+        ap('  hdbstatisticsserver .... stopped','wa');
+        ap('  hdbindexserver    .... stopped','wa');
+        setTimeout(()=>{
+          ap('  hdbpreprocessor   .... stopped','wa');
+          ap('  hdbnameserver     .... stopped','wa');
+          ap('  hdbdaemon         .... stopped','wa');
+          ap('SAP HANA Database S4H stopped.','su');
+          dbOn=false;
+        },600);
+      },500);
+    }else if(sub==='info'){
+      if(!dbOn){ap('HANA system is not running','er');return;}
+      apl([
+        `HDB info for ${DB_HOST} (SID=S4H, NR=00)`,
+        '─────────────────────────────────────────────────────────────',
+        'Process              Port   Status   PID    Details',
+        'hdbdaemon            30013  RUNNING  34765',
+        'hdbnameserver        30001  RUNNING  34766  master',
+        'hdbpreprocessor      30010  RUNNING  34767',
+        'hdbindexserver       30003  RUNNING  34890  master, port 30015',
+        'hdbstatisticsserver  30017  RUNNING  34891',
+        'hdbwebdispatcher     30040  RUNNING  34892',
+        '─────────────────────────────────────────────────────────────',
+        'Overall Server State: RUNNING',
+      ]);
+    }else if(sub==='version'){
+      apl([
+        'HDB version info:',
+        '  version:             2.00.067.00.1685702766',
+        '  branch:              hanab2sp06',
+        '  machine config:      linuxx86_64',
+        '  git hash:            a1b2c3d4e5f6...',
+        '  compile date:        2023-06-02 12:46:06',
+        '  compile host:        ld5569',
+        '  compile type:        rel',
+      ]);
+    }else{
+      ap('사용법: HDB start | stop | info | version','wa');
+    }
+  },
+
+  hdbsql(args){
+    if(activeTab!=='db'){ap('bash: hdbsql: command not found','er');return;}
+    if(!dbOn){ap('* 10: error: Connection failed (HANA not running)','er');return;}
+    const joined=args.join(' ');
+    const sqlMatch=joined.match(/"([^"]+)"/)||joined.match(/'([^']+)'/);
+    const sql=(sqlMatch?sqlMatch[1]:'').toUpperCase().trim();
+
+    ap(`hdbsql S4H=> ${sqlMatch?sqlMatch[0]:''}`,'mu');
+
+    if(sql.includes('M_SERVICES')){
+      apl([
+        'SERVICE_NAME      HOST      PORT   ACTIVE_STATUS  DETAIL',
+        'nameserver        s4hdb01   30001  YES            master',
+        'preprocessor      s4hdb01   30010  YES',
+        'indexserver       s4hdb01   30003  YES            master, SQL port: 30015',
+        'statisticsserver  s4hdb01   30017  YES',
+        'webdispatcher     s4hdb01   30040  YES',
+        '5 rows selected (execution time: 3.127 msec)','','OK','',
+      ]);
+    }else if(sql.includes('M_DATABASES')){
+      apl([
+        'DATABASE_NAME  DESCRIPTION  ACTIVE_STATUS  OS_USER      OS_GROUP  RESTART_MODE',
+        'SYSTEMDB       SystemDB     YES            s4hdb01adm   sapsys    DEFAULT',
+        'S4H            S4H          YES            s4hdb01adm   sapsys    DEFAULT',
+        '2 rows selected (execution time: 2.841 msec)','','OK','',
+      ]);
+    }else if(sql.includes('M_DISK_USAGE')){
+      apl([
+        'HOST      SERVER_TIMESTAMP             USAGE_TYPE  USED_SIZE    TOTAL_SIZE',
+        `s4hdb01   2026-05-08 09:42:17.000000   DATA        51,895,123   214,748,364`,
+        `s4hdb01   2026-05-08 09:42:17.000000   LOG         12,845,056   107,374,182`,
+        `s4hdb01   2026-05-08 09:42:17.000000   TRACE        2,516,582    53,687,091`,
+        '3 rows selected (execution time: 5.223 msec)','','OK','',
+      ]);
+    }else if(sql.includes('M_BACKUP_CATALOG')){
+      apl([
+        'ENTRY_ID  ENTRY_TYPE_NAME       SYS_START_TIME               STATE_NAME',
+        '1234      complete data backup  2026-05-07 02:00:00.000000   successful',
+        '1235      log backup            2026-05-08 00:00:01.000000   successful',
+        '2 rows selected (execution time: 4.112 msec)','','OK','',
+      ]);
+    }else if(sql){
+      ap(`* 257: sql syntax error: ${sql}`,'er');
+      ap('(지원 쿼리: M_SERVICES, M_DATABASES, M_DISK_USAGE, M_BACKUP_CATALOG)','mu');
+    }else{
+      ap('사용법: hdbsql -i 00 -u <user> -p <pw> "SELECT * FROM <view>"','wa');
+    }
+  },
+
+  hdbcons(args){
+    if(activeTab!=='db'){ap('bash: hdbcons: command not found','er');return;}
+    if(!dbOn){ap('hdbcons: cannot connect to indexserver (HANA not running)','er');return;}
+    const joined=args.join(' ');
+    const cmdMatch=joined.match(/"([^"]+)"/)||joined.match(/'([^']+)'/);
+    const cmd=(cmdMatch?cmdMatch[1]:'').toLowerCase().trim();
+
+    ap(`hdbcons version 2.00.067`,'mu');
+
+    if(cmd.includes('replication')){
+      apl([
+        '> replication info',
+        '────────────────────────────────────────',
+        '  Replication Mode   : PRIMARY',
+        '  Replication Status : ACTIVE',
+        '  Secondary Site     : s4hdb02 (ASYNC)',
+        '  Replication Lag    : 0.5 sec',
+        '  Last Sync Time     : 2026-05-08 09:41:55',
+        '  Log Position       : 1234567',
+        '────────────────────────────────────────',
+      ],'su');
+    }else if(cmd){
+      ap(`> ${cmd}`)
+      ap(`hdbcons: unknown command '${cmd}'`,'er');
+      ap('(지원 명령어: "replication info")','mu');
+    }else{
+      ap('사용법: hdbcons "replication info"','wa');
+    }
+  },
+
+  hdbbackupdiag(args){
+    if(activeTab!=='db'){ap('bash: hdbbackupdiag: command not found','er');return;}
+    if(args[0]!=='--check'){ap('사용법: hdbbackupdiag --check','wa');return;}
+    apl([
+      'Backup Diagnosis Tool — SAP HANA 2.00.067',
+      '══════════════════════════════════════════',
+      'Checking backup configuration ...',
+    ]);
+    ap('  Backup destination   : /hana/backup/data     [OK]','su');
+    ap('  Log backup dest      : /hana/backup/log      [OK]','su');
+    ap('  Backup catalog       : /hana/backup/catalog  [OK]','su');
+    ap('Checking last data backup ...');
+    ap('  Last data backup     : 2026-05-07 02:00:00   [OK]','su');
+    ap('  Backup size          : 48.3 GB               [OK]','su');
+    ap('  Backup age           : 31:42:17              [OK] (< 48h)','su');
+    ap('Checking last log backup ...');
+    ap('  Last log backup      : 2026-05-08 00:00:01   [OK]','su');
+    ap('  Log backup age       : 9:42:16               [OK] (< 15min: YES)','su');
+    ap('══════════════════════════════════════════');
+    ap('Overall result: OK — all backup checks passed.','su');
+  },
+
+};
+
+/* ───────────────────────────────────────────
+   파이프 / 리다이렉션 파싱 & 실행
+─────────────────────────────────────────── */
+function parsePipe(input){
+  return input.split('|').map(s=>{const p=s.trim().split(/\s+/);return{cmd:p[0],args:p.slice(1)};});
+}
+
+function handleRedirect(input){
+  const m=input.match(/^(.+?)\s*(>>|>)\s*(\S+)$/);
+  if(!m)return false;
+  ap(`(리다이렉션: '${m[1].trim()}' → ${m[3]} ${m[2]==='>'?'저장':'추가'} — 시뮬레이션)`,'mu');
+  const p=m[1].trim().split(/\s+/);
+  if(CMDS[p[0]])CMDS[p[0]](p.slice(1));
+  return true;
+}
+
+function rc(input){
+  input=input.trim();
+  if(!input)return;
+  if(pagerActive){pagerNext();return;}
+  hist.push(input);hidx=hist.length;
+  apc(input);
+
+  if(handleRedirect(input))return;
+
+  const segs=parsePipe(input);
+  if(segs.length>1){
+    const main=segs[0],filters=segs.slice(1);
+    if(!CMDS[main.cmd]){ap(`bash: ${main.cmd}: command not found`,'er');return;}
+    const o=document.getElementById('output');
+    const prevCount=o.children.length;
+    CMDS[main.cmd](main.args);
+    filters.forEach(f=>{
+      const items=Array.from(o.children).slice(prevCount);
+      if(f.cmd==='grep'){
+        const flagArgs=f.args.filter(a=>a.startsWith('-'));
+        const rest=f.args.filter(a=>!a.startsWith('-'));
+        const opts=flagArgs.join('').replace(/-/g,''),pat=rest[0]||'';
+        const re=new RegExp(pat,opts.includes('i')?'i':'');
+        const invert=opts.includes('v');
+        items.forEach(el=>{
+          if(invert?re.test(el.textContent):!re.test(el.textContent))
+            el.style.display='none';
+          else if(/(ERROR|FAIL)/i.test(el.textContent))el.className='ln er';
+          else if(/WARN/i.test(el.textContent))el.className='ln wa';
+        });
+      }else if(f.cmd==='sort'){
+        const sorted=[...items].sort((a,b)=>a.textContent.localeCompare(b.textContent));
+        items.forEach((el,i)=>el.textContent=sorted[i].textContent);
+      }else if(f.cmd==='wc'&&f.args.includes('-l')){
+        const cnt=items.filter(el=>el.style.display!=='none').length;
+        ap(`${cnt}`);
+      }else if(f.cmd==='uniq'){
+        const seen=new Set();
+        items.forEach(el=>{
+          if(seen.has(el.textContent))el.style.display='none';
+          else seen.add(el.textContent);
+        });
+      }
+    });
+    return;
+  }
+
+  const parts=input.split(/\s+/),cmd=parts[0],args=parts.slice(1);
+  if(CMDS[cmd])CMDS[cmd](args);
+  else{
+    ap(`bash: ${cmd}: command not found`,'er');
+    ap("힌트: 'help' 를 입력하면 사용 가능한 명령어 목록을 볼 수 있습니다.",'mu');
+  }
+}
+
+/* ───────────────────────────────────────────
+   키보드 이벤트
+─────────────────────────────────────────── */
+document.getElementById('ci').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(pagerActive)pagerNext();
+    else{rc(e.target.value);e.target.value='';}
+  }else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    if(hidx>0){hidx--;e.target.value=hist[hidx]||'';}
+  }else if(e.key==='ArrowDown'){
+    e.preventDefault();
+    if(hidx<hist.length-1){hidx++;e.target.value=hist[hidx]||'';}
+    else{hidx=hist.length;e.target.value='';}
+  }else if(e.key==='Tab'){
+    e.preventDefault();
+    const val=e.target.value.trim(),parts=val.split(/\s+/);
+    if(parts.length>=1){
+      const partial=parts[parts.length-1];
+      const baseDir=partial.includes('/')?partial.split('/').slice(0,-1).join('/')||'/':'';
+      const base=rp(baseDir||''),frag=partial.split('/').pop();
+      const matches=(FS[base]||[]).filter(x=>x.startsWith(frag));
+      if(matches.length===1){
+        parts[parts.length-1]=(baseDir?baseDir+'/':'')+matches[0];
+        e.target.value=parts.join(' ');
+      }else if(matches.length>1){apc(val);ap(matches.join('   '));}
+    }
+  }else if(e.ctrlKey&&e.key==='l'){e.preventDefault();CMDS.clear();}
+  else if(e.ctrlKey&&e.key==='c'){ap('^C','mu');e.target.value='';if(pagerActive)pagerQuit();}
+  else if(e.key===' '&&pagerActive){e.preventDefault();pagerNext();}
+  else if(e.key==='q'&&pagerActive){e.preventDefault();pagerQuit();}
+});
+
+/* ───────────────────────────────────────────
+   초기 화면
+─────────────────────────────────────────── */
+apl([
+  'SUSE Linux Enterprise Server 15 SP4',
+  `Kernel 5.14.21-150400.24.81-default (${AP_HOST})`,
+  'Last login: Mon May 05 18:31:02 2026 from 10.10.1.10',
+],'mu');
+apl([
+  '',
+  'SAP BASIS TRAINING TERMINAL v2 — AP Server Simulator',
+  `SID: S4H  |  Instance: D00  |  Host: ${AP_HOST}  |  User: ${user}`,
+  'SAP System Status: RUNNING  |  SLES 15 SP4  |  Kernel 753',
+  '',
+  "'help' 를 입력하면 명령어 목록을 볼 수 있습니다.",
+  '',
+],'in');
+up();
+</script>
+</body>
+</html>
