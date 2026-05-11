@@ -1,0 +1,130 @@
+=====================================================================
+SAP Basis Training Terminal — 실환경 검수 필요 문서 목록
+작성일: 2026-05-11
+=====================================================================
+
+아래 문서들은 자동 조회가 불가하여 직접 확인이 필요합니다.
+확인 후 시뮬레이터와 다른 내용이 있으면 반영 요청해 주세요.
+
+---------------------------------------------------------------------
+[1] SAP Note 809477 — sapcontrol 전체 함수 목록
+---------------------------------------------------------------------
+접근 경로 : https://launchpad.support.sap.com/#/notes/809477
+           (SAP Support Launchpad 로그인 필요)
+확인 항목 :
+  - sapcontrol -function 전체 목록 (현재 미구현 함수 확인)
+  - ABAPReadSyslog 출력 컬럼 및 형식
+  - GetQueueStatistic 출력 형식 (DIA/BTC/UPD 큐 통계)
+  - ABAPGetWPTable 컬럼 순서 확인 (현재 구현과 비교)
+  - AccessCheck, GetNetworkId 등 기타 함수 설명
+
+---------------------------------------------------------------------
+[2] SAP Note 1763593 — sapcontrol 사용 가이드 (심화)
+---------------------------------------------------------------------
+접근 경로 : https://launchpad.support.sap.com/#/notes/1763593
+           (SAP Support Launchpad 로그인 필요)
+확인 항목 :
+  - sapcontrol 인증 방식 (-host, -user, -password 옵션)
+  - SOAP Web Service 호출 방식
+  - 에러 코드 및 exit status 코드 목록
+    (현재 구현: exit status 3 = Connection refused)
+
+---------------------------------------------------------------------
+[3] SAP HANA HDB 명령어 공식 문서
+---------------------------------------------------------------------
+접근 경로 : https://help.sap.com/docs/SAP_HANA_PLATFORM/4e9b18c116aa42fc84c7dbfd02111aba/14e7d23911de4b34850d53718dcb960d.html
+확인 항목 :
+  - HDB info 정확한 출력 형식
+    (현재 구현: ps 트리 스타일 — pid/ppid/%cpu/vsz/rss/LstChg/command)
+  - HDB start/stop 정확한 출력 메시지 및 순서
+  - HDB version 출력 필드 확인
+  - HDB 기타 서브 커맨드 존재 여부 (HDB kill, HDB restart 등)
+
+---------------------------------------------------------------------
+[4] hdbnsutil 명령어 공식 문서
+---------------------------------------------------------------------
+접근 경로 : https://help.sap.com/docs/SAP_HANA_PLATFORM/4e9b18c116aa42fc84c7dbfd02111aba/2dd26de6360046309e1579accbd9e527.html
+확인 항목 :
+  - hdbnsutil -sr_state 정확한 출력 형식
+    (현재 구현 없음 — 추가 예정)
+    예상 출력:
+      mode: PRIMARY
+      site id: 1
+      site name: SITE1
+      Overall system replication status: ACTIVE
+  - hdbnsutil -sr_enable --name=<sitename> 출력 형식
+  - hdbnsutil -sr_register 출력 형식
+  - 기타 hdbnsutil 서브 커맨드 목록
+
+---------------------------------------------------------------------
+[5] hdbuserstore 공식 문서
+---------------------------------------------------------------------
+접근 경로 : https://help.sap.com/docs/SAP_HANA_CLIENT/f1b440ded6144a54ada97ff95dac7adf/708e5fe0e44a4764a1b6b5ea549b88f4.html
+확인 항목 :
+  - hdbuserstore list 정확한 출력 형식
+    (현재 구현 없음 — 추가 예정)
+  - hdbuserstore set KEY HOST:PORT USER PASSWORD 출력
+  - hdbuserstore delete KEY 출력
+
+---------------------------------------------------------------------
+[6] hdbsql 시스템 뷰 공식 문서
+---------------------------------------------------------------------
+접근 경로 : https://help.sap.com/docs/SAP_HANA_CLIENT/f1b440ded6144a54ada97ff95dac7adf/c22c67c3bb571014afebeb4a76c3d95d.html
+확인 항목 :
+  - M_CONNECTIONS 컬럼 목록 및 순서
+    (현재 구현 없음 — 추가 예정)
+  - M_MEMORY 컬럼 목록 및 순서
+    (현재 구현 없음 — 추가 예정)
+  - M_SYSTEM_OVERVIEW 컬럼 목록 및 순서
+    (현재 구현 없음 — 추가 예정)
+  - M_VOLUME_SIZES 컬럼 목록 및 순서
+    (현재 구현 없음 — 추가 예정)
+  - M_LICENSE 컬럼 목록 및 순서
+    (현재 구현 없음 — 추가 예정)
+  - hdbsql 명령행 옵션 전체 목록 (-i, -u, -p, -d, -n 등)
+
+---------------------------------------------------------------------
+[7] ABAPReadSyslog (SM21) 출력 형식
+---------------------------------------------------------------------
+접근 경로 : SAP 실환경에서 아래 명령어 실행 후 출력 캡처 요청
+  sapcontrol -nr 00 -function ABAPReadSyslog
+확인 항목 :
+  - 컬럼 목록 (Time, MsgNo, Type, TD, Group, Program, Host, Message 등)
+  - 날짜/시간 형식
+  - 메시지 타입 코드 (E=Error, W=Warning, I=Info 등)
+
+---------------------------------------------------------------------
+[8] dpmon 실환경 출력 캡처 요청
+---------------------------------------------------------------------
+현재 구현한 dpmon 컬럼:
+  No Ty Pid Status Start Err Sem CPU Time Program Cl User
+
+실제 환경에서 아래 명령어 실행 후 출력 붙여넣기 요청:
+  dpmon
+  (또는 sm50 트랜잭션 화면 캡처)
+
+확인 항목 :
+  - 컬럼 순서가 현재 구현과 동일한지 여부
+  - Reason, Action, Table 컬럼 실제 표시 여부
+  - Status 값 종류 (Wait/Run/PRIV/Hold 등)
+
+---------------------------------------------------------------------
+[9] startsap/stopsap 실제 출력 메시지
+---------------------------------------------------------------------
+현재 구현 출력:
+  Starting SAP System S4H ...
+  Starting instance ASCS01
+    Message Server .... ok
+    Enqueue Server .... ok
+  Starting instance D00
+    Dispatcher     .... ok
+    ICM            .... ok
+    Work Processes .... ok
+  SAP System S4H started.
+
+실제 환경에서 startsap 실행 시 전체 출력 캡처 요청
+(버전: SAP Kernel 753, SLES 15 SP4 기준)
+
+=====================================================================
+END OF DOCUMENT
+=====================================================================

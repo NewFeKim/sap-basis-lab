@@ -55,6 +55,9 @@ body{background:#0d1117;display:flex;justify-content:center;align-items:flex-sta
     <span onclick="rc('startsap')">startsap</span>
     <span onclick="rc('stopsap')">stopsap</span>
     <span onclick="rc('sapcontrol -nr 00 -function GetProcessList')">GetProcessList</span>
+    <span onclick="rc('sapcontrol -nr 00 -function ABAPGetWPTable')">ABAPGetWPTable</span>
+    <span onclick="rc('sapcontrol -nr 00 -function GetQueueStatistic')">GetQueueStatistic</span>
+    <span onclick="rc('sapcontrol -nr 00 -function ABAPReadSyslog')">ABAPReadSyslog</span>
     <span onclick="rc('dpmon')">dpmon</span>
     <span onclick="rc('ps aux | grep dw')">ps|grep dw</span>
     <span onclick="rc('tail -f /usr/sap/S4H/D00/work/dev_w0')">tail -f dev_w0</span>
@@ -78,6 +81,8 @@ body{background:#0d1117;display:flex;justify-content:center;align-items:flex-sta
     <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_DATABASES\"')">M_DATABASES</span>
     <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_DISK_USAGE\"')">M_DISK_USAGE</span>
     <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_BACKUP_CATALOG\"')">M_BACKUP_CATALOG</span>
+    <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_CONNECTIONS\"')">M_CONNECTIONS</span>
+    <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_SYSTEM_OVERVIEW\"')">M_SYSTEM_OVERVIEW</span>
     <span onclick="rc('hdbcons \"replication info\"')">hdbcons</span>
     <span onclick="rc('hdbbackupdiag --check')">hdbbackupdiag</span>
     <span onclick="rc('sapcontrol -nr 00 -function GetProcessList')">sc GetProcessList</span>
@@ -617,6 +622,8 @@ const CMDS={
         '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_DATABASES"',
         '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_DISK_USAGE"',
         '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_BACKUP_CATALOG"',
+        '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_CONNECTIONS"',
+        '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_SYSTEM_OVERVIEW"',
         '',
         '  [HANA 진단]',
         '    hdbcons "replication info"',
@@ -649,6 +656,10 @@ const CMDS={
         '    sapcontrol -nr 00 -function GetSystemInstanceList',
         '    sapcontrol -nr 00 -function GetAlertTree',
         '    sapcontrol -nr 00 -function ParameterValue <param>',
+        '    sapcontrol -nr 00 -function ABAPGetWPTable',
+        '    sapcontrol -nr 00 -function GetQueueStatistic',
+        '    sapcontrol -nr 00 -function ABAPReadSyslog',
+        '    sapcontrol -nr 00 -function GetEnvironment',
         '',
         '  [SAP 진단]',
         '    dpmon          sm50          R3trans -d',
@@ -1028,6 +1039,7 @@ const CMDS={
 
   startsap(args){
     if(activeTab!=='ap'){ap('bash: startsap: command not found','er');return;}
+    ap('NOTE: startsap is deprecated. Consider using: sapcontrol -nr 00 -function StartSystem','wa');
     if(sapOn){ap('SAP system already started','wa');return;}
     ap('Starting SAP System S4H ...');
     ap('Checking smda97 ... not running','mu');
@@ -1059,6 +1071,7 @@ const CMDS={
 
   stopsap(){
     if(activeTab!=='ap'){ap('bash: stopsap: command not found','er');return;}
+    ap('NOTE: stopsap is deprecated. Consider using: sapcontrol -nr 00 -function StopSystem','wa');
     if(!sapOn){ap('SAP system already stopped','wa');return;}
     ap('Stopping SAP System S4H ...');
     setTimeout(()=>{
@@ -1206,6 +1219,53 @@ const CMDS={
         'icm/server_port_0':'PROT=HTTP,PORT=8000','em/initial_size_MB':'4096'};
       ap('OK','su');
       ap(`${param} = ${pv[param]||'(파라미터 없음)'}`);
+    }else if(func==='ABAPGetWPTable'){
+      apl(['OK',
+        'No, Typ, Pid,   Status, Reason, Start, Err, Sem,  Cpu,   Time,  Program,      Client, User,     Action, Table',
+        ' 0, DIA, 28473, Wait,   ,       2:07,    0,   0, 0.02,  1:25,  ,             000,    ,         ,',
+        ' 1, DIA, 28474, Wait,   ,       2:07,    0,   0, 0.12,  2:41,  SAPMV45A,     100,    TESTUSER, ,',
+        ' 2, DIA, 28475, Run,    ,       2:07,    0,   0, 1.82,  0:04,  RSBDCSUB,     100,    BASISADM, Dynpro,',
+        ' 3, DIA, 28476, Wait,   ,       2:07,    0,   0, 0.01,  1:25,  ,             000,    ,         ,',
+        ' 4, DIA, 28477, PRIV,   ,       2:07,    0,   0, 0.44,  8:12,  ,             100,    DEVUSER,  ,',
+        ' 5, DIA, 28478, Wait,   ,       2:07,    0,   0, 0.01,  1:25,  ,             000,    ,         ,',
+        ' 6, BTC, 28479, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
+        ' 7, BTC, 28480, Run,    ,       2:07,    0,   0, 0.55,  0:12,  RSSNAPDL,     000,    ,         ,',
+        ' 8, BTC, 28481, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
+        ' 9, SPO, 28482, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
+        '10, SPO, 28483, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
+        '11, UPD, 28484, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
+        '12, UPD2,28485, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
+      ]);
+    }else if(func==='GetQueueStatistic'){
+      apl(['OK',
+        'Typ, Now, High, Max, Writes, Reads',
+        'DIA,   0,    3,  50,    142,   142',
+        'UPD,   0,    1,  50,     28,    28',
+        'BTC,   0,    1,  50,     17,    17',
+        'SPO,   0,    0,  50,      4,     4',
+        'UPD2,  0,    0,  50,      2,     2',
+      ],'su');
+    }else if(func==='ABAPReadSyslog'){
+      apl(['OK',
+        'Time,            MsgNo, Type, TD, Group,   Program,    Host,     Message',
+        `${new Date().toISOString().slice(0,19).replace('T',' ')}, 0051,  W,    ,  dialog,  SAPMV45A,   s4happ01, Transaction cancelled by user`,
+        `${new Date().toISOString().slice(0,19).replace('T',' ')}, 0000,  I,    ,  system,  RSBDCSUB,   s4happ01, Batch job RSSNAPDL started`,
+        `${new Date().toISOString().slice(0,19).replace('T',' ')}, 0516,  E,    ,  update,  ,           s4happ01, Update terminated (UPD error)`,
+      ]);
+    }else if(func==='GetEnvironment'){
+      apl(['OK',
+        'SAPSYSTEMNAME=S4H',
+        'SAPSYSTEM=00',
+        `SAPGLOBALHOST=${AP_HOST}`,
+        'DIR_LIBRARY=/usr/sap/S4H/D00/exe',
+        'DIR_CT_RUN=/usr/sap/S4H/D00/exe',
+        `SAPLOCALHOSTFULL=${AP_HOST}.corp.com`,
+        'dbs_hdb_dbhost=s4hdb01.corp.com',
+        'dbs_hdb_dbname=S4H',
+        'PATH=/usr/sap/S4H/D00/exe:/usr/local/bin:/usr/bin:/bin',
+        'SHELL=/bin/bash',
+        'LANG=en_US.UTF-8',
+      ]);
     }else if(!func){
       ap('사용법: sapcontrol -nr 00 -function <FunctionName>','wa');
     }else{
@@ -1377,9 +1437,36 @@ const CMDS={
         '1235      log backup            2026-05-08 00:00:01.000000   successful',
         '2 rows selected (execution time: 4.112 msec)','','OK','',
       ]);
+    }else if(sql.includes('M_CONNECTIONS')){
+      apl([
+        'CONNECTION_ID  USER      CLIENT_HOST    CLIENT_IP      PORT   STATUS  CREATED_AT',
+        '        65540  SYSTEM    s4happ01       10.10.1.51     39244  IDLE    2026-05-08 09:14:22.000000',
+        '        65541  SAPABAP1  s4happ01       10.10.1.51     39246  IDLE    2026-05-08 09:14:23.000000',
+        '        65542  SAPABAP1  s4happ01       10.10.1.51     39248  IDLE    2026-05-08 09:14:23.000000',
+        '        65543  SAPABAP1  s4happ01       10.10.1.51     39250  RUNNING 2026-05-08 09:14:23.000000',
+        '4 rows selected (execution time: 2.841 msec)','','OK','',
+      ]);
+    }else if(sql.includes('M_SYSTEM_OVERVIEW')){
+      apl([
+        'SECTION         DESCRIPTION               VALUE',
+        'System          Instance ID               HDB00',
+        'System          Instance Start Time       2026-04-23 06:20:01',
+        'System          HANA Version              2.00.067.00',
+        'System          Mode                      primary',
+        'Disk            Data disk size (GB)       200.0',
+        'Disk            Data disk used (GB)        48.3',
+        'Disk            Log disk size (GB)        100.0',
+        'Disk            Log disk used (GB)         12.1',
+        'Memory          Physical memory (GB)       64.0',
+        'Memory          Used by HANA (GB)          46.8',
+        'Memory          Used by OS (GB)             3.2',
+        'Alerts          High priority alerts            0',
+        'Alerts          Medium priority alerts          1',
+        '14 rows selected (execution time: 6.341 msec)','','OK','',
+      ]);
     }else if(sql){
       ap(`* 257: sql syntax error: ${sql}`,'er');
-      ap('(지원 쿼리: M_SERVICES, M_DATABASES, M_DISK_USAGE, M_BACKUP_CATALOG)','mu');
+      ap('(지원 쿼리: M_SERVICES, M_DATABASES, M_DISK_USAGE, M_BACKUP_CATALOG, M_CONNECTIONS, M_SYSTEM_OVERVIEW)','mu');
     }else{
       ap('사용법: hdbsql -i 00 -u <user> -p <pw> "SELECT * FROM <view>"','wa');
     }
