@@ -937,10 +937,12 @@ const CMDS={
       apl([
         'Proto Recv-Q Send-Q Local Address      Foreign Address  State    PID/Program',
         'tcp        0      0 0.0.0.0:22         0.0.0.0:*        LISTEN   512/sshd',
+        'tcp        0      0 0.0.0.0:3200       0.0.0.0:*        LISTEN   28472/disp+work',
+        'tcp        0      0 0.0.0.0:3300       0.0.0.0:*        LISTEN   28472/disp+work',
+        'tcp        0      0 0.0.0.0:3600       0.0.0.0:*        LISTEN   28465/msserv',
         'tcp        0      0 0.0.0.0:8000       0.0.0.0:*        LISTEN   28490/icman',
-        'tcp        0      0 0.0.0.0:8100       0.0.0.0:*        LISTEN   28472/disp+work',
+        'tcp        0      0 0.0.0.0:8100       0.0.0.0:*        LISTEN   28465/msserv',
         'tcp        0      0 0.0.0.0:44300      0.0.0.0:*        LISTEN   28490/icman',
-        'tcp        0      0 0.0.0.0:3600       0.0.0.0:*        LISTEN   28472/disp+work',
       ]);
     }
   },
@@ -962,9 +964,12 @@ const CMDS={
       ];
     }else{
       all=[
+        'disp+w  28472 s4hadm  5u  IPv4  TCP *:3200 (LISTEN)',
+        'disp+w  28472 s4hadm  6u  IPv4  TCP *:3300 (LISTEN)',
+        'msserv  28465 s4hadm  4u  IPv4  TCP *:3600 (LISTEN)',
+        'msserv  28465 s4hadm  5u  IPv4  TCP *:8100 (LISTEN)',
         'icman   28490 s4hadm  8u  IPv4  TCP *:8000 (LISTEN)',
         'icman   28490 s4hadm  9u  IPv4  TCP *:44300 (LISTEN)',
-        'disp+w  28472 s4hadm  6u  IPv4  TCP *:8100 (LISTEN)',
         'sshd      512   root  3u  IPv4  TCP *:22 (LISTEN)',
       ];
     }
@@ -1128,8 +1133,10 @@ const CMDS={
         ],'su');
       }else if(func==='GetSystemInstanceList'){
         apl(['OK',
-          'hostname, instanceNr, httpPort, httpsPort, startPriority, features,              dispstatus',
-          `s4hdb01,  00,         50013,    50014,     0,             HDB|HDB_WORKER|HDB_STANDBY, ${dbOn?'GREEN':'GRAY'}`,
+          'hostname, instanceNr, httpPort, httpsPort, startPriority, features,               dispstatus',
+          `s4happ01, 01,         50113,    50114,     2,             MESSAGESERVER|ENQUE,     ${sapOn?'GREEN':'GRAY'}`,
+          `s4happ01, 00,         50013,    50014,     3,             ABAP,                    ${sapOn?'GREEN':'GRAY'}`,
+          `s4hdb01,  00,         50013,    50014,     1,             HDB|HDB_WORKER,          ${dbOn?'GREEN':'GRAY'}`,
         ],dbOn?'su':'wa');
       }else if(func==='GetAlertTree'){
         apl(['OK',
@@ -1182,9 +1189,10 @@ const CMDS={
       if(!dbOn)ap('(WP가 DB 접속 대기 중 — DB 서버를 기동하십시오)','er');
     }else if(func==='GetSystemInstanceList'){
       apl(['OK',
-        'hostname, instanceNr, httpPort, httpsPort, startPriority, features,                    dispstatus',
-        `s4happ01, 00,         50013,    50014,     1,             MESSAGESERVER|ENQUE|ABAP,    ${sapOn?'GREEN':'GRAY'}`,
-        `s4hdb01,  00,         50013,    50014,     0,             HDB,                         ${dbOn?'GREEN':'GRAY'}`,
+        'hostname, instanceNr, httpPort, httpsPort, startPriority, features,               dispstatus',
+        `s4happ01, 01,         50113,    50114,     2,             MESSAGESERVER|ENQUE,     ${sapOn?'GREEN':'GRAY'}`,
+        `s4happ01, 00,         50013,    50014,     3,             ABAP,                    ${sapOn?'GREEN':'GRAY'}`,
+        `s4hdb01,  00,         50013,    50014,     1,             HDB|HDB_WORKER,          ${dbOn?'GREEN':'GRAY'}`,
       ],sapOn?'su':'wa');
     }else if(func==='GetAlertTree'){
       apl(['OK',
@@ -1209,23 +1217,23 @@ const CMDS={
     if(activeTab!=='ap'){ap('bash: dpmon: command not found','er');return;}
     if(!sapOn){ap('DPMON: cannot connect to dispatcher','er');return;}
     apl([
-      'DPMON (Dispatcher Monitor)  —  SID: S4H  Instance: D00',
-      '─────────────────────────────────────────────────────────',
-      'No  Type  PID    Status  Client  User         Program',
-      ' 0  DIA   28473  Wait    000     -            -',
-      ' 1  DIA   28474  Wait    100     TESTUSER     SAPMV45A',
-      ' 2  DIA   28475  Run     100     BASISADM     RSBDCSUB',
-      ' 3  DIA   28476  Wait    000     -            -',
-      ' 4  DIA   28477  PRIV    100     DEVUSER      -',
-      ' 5  DIA   28478  Wait    000     -            -',
-      ' 6  BTC   28479  Wait    000     -            -',
-      ' 7  BTC   28480  Run     000     -            RSSNAPDL',
-      ' 8  BTC   28481  Wait    000     -            -',
-      ' 9  SPO   28482  Wait    000     -            -',
-      '10  SPO   28483  Wait    000     -            -',
-      '11  UPD   28484  Wait    000     -            -',
-      '12  UPD2  28485  Wait    000     -            -',
-      '─────────────────────────────────────────────────────────',
+      'DPMON (Dispatcher Monitor)  —  SID: S4H  Instance: D00  Host: s4happ01',
+      '──────────────────────────────────────────────────────────────────────────────────────',
+      ' No Ty   Pid    Status  Reason   Start  Err Sem    CPU    Time  Program              Cl  User',
+      '  0 DIA  28473  Wait             2:07     0   0   0.02   1:25                       000',
+      '  1 DIA  28474  Wait             2:07     0   0   0.12   2:41  SAPMV45A             100 TESTUSER',
+      '  2 DIA  28475  Run              2:07     0   0   1.82   0:04  RSBDCSUB             100 BASISADM',
+      '  3 DIA  28476  Wait             2:07     0   0   0.01   1:25                       000',
+      '  4 DIA  28477  PRIV             2:07     0   0   0.44   8:12                       100 DEVUSER',
+      '  5 DIA  28478  Wait             2:07     0   0   0.01   1:25                       000',
+      '  6 BTC  28479  Wait             2:07     0   0   0.00   0:00                       000',
+      '  7 BTC  28480  Run              2:07     0   0   0.55   0:12  RSSNAPDL             000',
+      '  8 BTC  28481  Wait             2:07     0   0   0.00   0:00                       000',
+      '  9 SPO  28482  Wait             2:07     0   0   0.00   0:00                       000',
+      ' 10 SPO  28483  Wait             2:07     0   0   0.00   0:00                       000',
+      ' 11 UPD  28484  Wait             2:07     0   0   0.00   0:00                       000',
+      ' 12 UPD2 28485  Wait             2:07     0   0   0.00   0:00                       000',
+      '──────────────────────────────────────────────────────────────────────────────────────',
       'DIA: 6/6  BTC: 3/3  SPO: 2/2  UPD: 1/1  UPD2: 1/1',
     ]);
   },
@@ -1302,17 +1310,15 @@ const CMDS={
     }else if(sub==='info'){
       if(!dbOn){ap('HANA system is not running','er');return;}
       apl([
-        `HDB info for ${DB_HOST} (SID=S4H, NR=00)`,
-        '─────────────────────────────────────────────────────────────',
-        'Process              Port   Status   PID    Details',
-        'hdbdaemon            30013  RUNNING  34765',
-        'hdbnameserver        30001  RUNNING  34766  master',
-        'hdbpreprocessor      30010  RUNNING  34767',
-        'hdbindexserver       30003  RUNNING  34890  master, port 30015',
-        'hdbstatisticsserver  30017  RUNNING  34891',
-        'hdbwebdispatcher     30040  RUNNING  34892',
-        '─────────────────────────────────────────────────────────────',
-        'Overall Server State: RUNNING',
+        `HDB info for: s4hdb01adm`,
+        `  pid    ppid  %cpu vsz        rss        LstChg   command`,
+        `hdbdaemon is running (pid: 34765)`,
+        `  34765  1     0.0  218772     12436      09:14:01  hdbdaemon --processname=hdbdaemon`,
+        `  34766  34765 0.3  2254188    1154232    09:14:03  hdbnameserver`,
+        `  34767  34765 0.1  487654     298432     09:14:05  hdbpreprocessor`,
+        `  34890  34765 8.7  18874368   9437184    09:14:07  hdbindexserver -port 30003`,
+        `  34891  34765 0.2  512344     198432     09:14:09  hdbstatisticsserver`,
+        `  34892  34765 0.1  124512     51200      09:14:11  hdbwebdispatcher`,
       ]);
     }else if(sub==='version'){
       apl([
