@@ -594,6 +594,36 @@ function doVi(args){
 }
 
 /* ───────────────────────────────────────────
+   공유 데이터 헬퍼
+─────────────────────────────────────────── */
+// Work Process 공유 데이터 (dpmon + ABAPGetWPTable 공유)
+const WP_DATA=[
+  {no:' 0',ty:'DIA', pid:'28473',st:'Wait', cpu:'0.02',time:'1:25',prg:'',        cl:'000',usr:''},
+  {no:' 1',ty:'DIA', pid:'28474',st:'Wait', cpu:'0.12',time:'2:41',prg:'SAPMV45A',cl:'100',usr:'TESTUSER'},
+  {no:' 2',ty:'DIA', pid:'28475',st:'Run',  cpu:'1.82',time:'0:04',prg:'RSBDCSUB',cl:'100',usr:'BASISADM'},
+  {no:' 3',ty:'DIA', pid:'28476',st:'Wait', cpu:'0.01',time:'1:25',prg:'',        cl:'000',usr:''},
+  {no:' 4',ty:'DIA', pid:'28477',st:'PRIV', cpu:'0.44',time:'8:12',prg:'',        cl:'100',usr:'DEVUSER'},
+  {no:' 5',ty:'DIA', pid:'28478',st:'Wait', cpu:'0.01',time:'1:25',prg:'',        cl:'000',usr:''},
+  {no:' 6',ty:'BTC', pid:'28479',st:'Wait', cpu:'0.00',time:'0:00',prg:'',        cl:'000',usr:''},
+  {no:' 7',ty:'BTC', pid:'28480',st:'Run',  cpu:'0.55',time:'0:12',prg:'RSSNAPDL',cl:'000',usr:''},
+  {no:' 8',ty:'BTC', pid:'28481',st:'Wait', cpu:'0.00',time:'0:00',prg:'',        cl:'000',usr:''},
+  {no:' 9',ty:'SPO', pid:'28482',st:'Wait', cpu:'0.00',time:'0:00',prg:'',        cl:'000',usr:''},
+  {no:'10',ty:'SPO', pid:'28483',st:'Wait', cpu:'0.00',time:'0:00',prg:'',        cl:'000',usr:''},
+  {no:'11',ty:'UPD', pid:'28484',st:'Wait', cpu:'0.00',time:'0:00',prg:'',        cl:'000',usr:''},
+  {no:'12',ty:'UPD2',pid:'28485',st:'Wait', cpu:'0.00',time:'0:00',prg:'',        cl:'000',usr:''},
+];
+
+// AP 서버 공통 환경변수 (env 명령어 + sapcontrol GetEnvironment 공유)
+const getApEnv=()=>[
+  'SAPSYSTEMNAME=S4H','SAPSYSTEM=00',`SAPGLOBALHOST=${AP_HOST}`,
+  'DIR_LIBRARY=/usr/sap/S4H/D00/exe','DIR_CT_RUN=/usr/sap/S4H/D00/exe',
+  'DIR_EXECUTABLE=/usr/sap/S4H/D00/exe',`SAPLOCALHOSTFULL=${AP_HOST}.corp.com`,
+  'dbs_hdb_dbhost=s4hdb01.corp.com','dbs_hdb_dbname=S4H','dbs_hdb_schema=SAPABAP1',
+  'PATH=/usr/sap/S4H/D00/exe:/usr/local/bin:/usr/bin:/bin',
+  'SHELL=/bin/bash','LANG=en_US.UTF-8',
+];
+
+/* ───────────────────────────────────────────
    명령어 핸들러 테이블 (CMDS)
 ─────────────────────────────────────────── */
 const CMDS={
@@ -1004,14 +1034,7 @@ const CMDS={
         'HDBSQL_PATH=/hana/shared/S4H/hdbclient',
       ];
     }else{
-      all=[
-        'SAPSYSTEMNAME=S4H','SAPSYSTEM=00',`SAPGLOBALHOST=${AP_HOST}`,
-        'DIR_LIBRARY=/usr/sap/S4H/D00/exe','DIR_CT_RUN=/usr/sap/S4H/D00/exe',
-        'DIR_EXECUTABLE=/usr/sap/S4H/D00/exe',`SAPLOCALHOSTFULL=${AP_HOST}.corp.com`,
-        'dbs_hdb_dbhost=s4hdb01.corp.com','dbs_hdb_dbname=S4H','dbs_hdb_schema=SAPABAP1',
-        'PATH=/usr/sap/S4H/D00/exe:/usr/local/bin:/usr/bin:/bin',
-        `HOME=/home/${user}`,'SHELL=/bin/bash','LANG=en_US.UTF-8',
-      ];
+      all=[...getApEnv(),`HOME=/home/${user}`];
     }
     const pat=(joined.match(/grep\s+(\S+)/)||[])[1]||'';
     (pat?all.filter(e=>e.toLowerCase().includes(pat.toLowerCase())):all).forEach(l=>ap(l));
@@ -1039,8 +1062,8 @@ const CMDS={
 
   startsap(args){
     if(activeTab!=='ap'){ap('bash: startsap: command not found','er');return;}
-    ap('NOTE: startsap is deprecated. Consider using: sapcontrol -nr 00 -function StartSystem','wa');
     if(sapOn){ap('SAP system already started','wa');return;}
+    ap('NOTE: startsap is deprecated. Consider using: sapcontrol -nr 00 -function StartSystem','wa');
     ap('Starting SAP System S4H ...');
     ap('Checking smda97 ... not running','mu');
     setTimeout(()=>{
@@ -1071,8 +1094,8 @@ const CMDS={
 
   stopsap(){
     if(activeTab!=='ap'){ap('bash: stopsap: command not found','er');return;}
-    ap('NOTE: stopsap is deprecated. Consider using: sapcontrol -nr 00 -function StopSystem','wa');
     if(!sapOn){ap('SAP system already stopped','wa');return;}
+    ap('NOTE: stopsap is deprecated. Consider using: sapcontrol -nr 00 -function StopSystem','wa');
     ap('Stopping SAP System S4H ...');
     setTimeout(()=>{
       ap('  Stopping Work Processes .... stopped','wa');
@@ -1092,12 +1115,13 @@ const CMDS={
     const param=(joined.match(/-function\s+\S+\s+(\S+)/)||[])[1]||'';
     const now=new Date();
     const ts=`${String(now.getDate()).padStart(2,'0')}.${String(now.getMonth()+1).padStart(2,'0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+    const echo=()=>{ap(ts);ap(func);};
 
     /* ── DB 서버 (HANA 인스턴스 제어) ── */
     if(activeTab==='db'){
       // Start / Stop 은 dbOn 상태와 무관하게 항상 시도 가능
       if(func==='Start'||func==='StartSystem'){
-        ap(ts);ap(func);
+        echo();
         if(dbOn){ap('OK','su');ap('Instance is already running','wa');return;}
         ap('OK','su');
         ap('Starting SAP HANA instance HDB00 ...','in');
@@ -1114,7 +1138,7 @@ const CMDS={
         return;
       }
       if(func==='Stop'||func==='StopSystem'||func==='StopWait'){
-        ap(ts);ap(func);
+        echo();
         if(!dbOn){ap('OK','su');ap('Instance is already stopped','wa');return;}
         ap('OK','su');
         ap('Stopping SAP HANA instance HDB00 ...','in');
@@ -1133,7 +1157,7 @@ const CMDS={
         ap('FAIL: NIECONN_REFUSED (Connection refused)','er');
         ap('sapcontrol: exit status: 3','er');return;
       }
-      ap(ts);ap(func);
+      echo();
       if(func==='GetProcessList'){
         apl(['OK',
           'name,                description,          dispstatus, textstatus, starttime,           elapsedtime, pid',
@@ -1188,7 +1212,7 @@ const CMDS={
       ap('FAIL: NIECONN_REFUSED (Connection refused)','er');
       ap('sapcontrol: exit status: 3','er');return;
     }
-    ap(ts);ap(func);
+    echo();
     if(func==='GetProcessList'){
       const wpStatus=dbOn?'GREEN':'RED';
       const wpText=dbOn?'Running':'Waiting for DB';
@@ -1222,19 +1246,7 @@ const CMDS={
     }else if(func==='ABAPGetWPTable'){
       apl(['OK',
         'No, Typ, Pid,   Status, Reason, Start, Err, Sem,  Cpu,   Time,  Program,      Client, User,     Action, Table',
-        ' 0, DIA, 28473, Wait,   ,       2:07,    0,   0, 0.02,  1:25,  ,             000,    ,         ,',
-        ' 1, DIA, 28474, Wait,   ,       2:07,    0,   0, 0.12,  2:41,  SAPMV45A,     100,    TESTUSER, ,',
-        ' 2, DIA, 28475, Run,    ,       2:07,    0,   0, 1.82,  0:04,  RSBDCSUB,     100,    BASISADM, Dynpro,',
-        ' 3, DIA, 28476, Wait,   ,       2:07,    0,   0, 0.01,  1:25,  ,             000,    ,         ,',
-        ' 4, DIA, 28477, PRIV,   ,       2:07,    0,   0, 0.44,  8:12,  ,             100,    DEVUSER,  ,',
-        ' 5, DIA, 28478, Wait,   ,       2:07,    0,   0, 0.01,  1:25,  ,             000,    ,         ,',
-        ' 6, BTC, 28479, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
-        ' 7, BTC, 28480, Run,    ,       2:07,    0,   0, 0.55,  0:12,  RSSNAPDL,     000,    ,         ,',
-        ' 8, BTC, 28481, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
-        ' 9, SPO, 28482, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
-        '10, SPO, 28483, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
-        '11, UPD, 28484, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
-        '12, UPD2,28485, Wait,   ,       2:07,    0,   0, 0.00,  0:00,  ,             000,    ,         ,',
+        ...WP_DATA.map(r=>`${r.no}, ${r.ty.padEnd(3)}, ${r.pid}, ${r.st.padEnd(6)},       , 2:07,    0,   0, ${r.cpu},  ${r.time},  ${r.prg.padEnd(12)},  ${r.cl},    ${r.usr.padEnd(8)},  ,`),
       ]);
     }else if(func==='GetQueueStatistic'){
       apl(['OK',
@@ -1246,26 +1258,15 @@ const CMDS={
         'UPD2,  0,    0,  50,      2,     2',
       ],'su');
     }else if(func==='ABAPReadSyslog'){
+      const syslogTs=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
       apl(['OK',
         'Time,            MsgNo, Type, TD, Group,   Program,    Host,     Message',
-        `${new Date().toISOString().slice(0,19).replace('T',' ')}, 0051,  W,    ,  dialog,  SAPMV45A,   s4happ01, Transaction cancelled by user`,
-        `${new Date().toISOString().slice(0,19).replace('T',' ')}, 0000,  I,    ,  system,  RSBDCSUB,   s4happ01, Batch job RSSNAPDL started`,
-        `${new Date().toISOString().slice(0,19).replace('T',' ')}, 0516,  E,    ,  update,  ,           s4happ01, Update terminated (UPD error)`,
+        `${syslogTs}, 0051,  W,    ,  dialog,  SAPMV45A,   s4happ01, Transaction cancelled by user`,
+        `${syslogTs}, 0000,  I,    ,  system,  RSBDCSUB,   s4happ01, Batch job RSSNAPDL started`,
+        `${syslogTs}, 0516,  E,    ,  update,  ,           s4happ01, Update terminated (UPD error)`,
       ]);
     }else if(func==='GetEnvironment'){
-      apl(['OK',
-        'SAPSYSTEMNAME=S4H',
-        'SAPSYSTEM=00',
-        `SAPGLOBALHOST=${AP_HOST}`,
-        'DIR_LIBRARY=/usr/sap/S4H/D00/exe',
-        'DIR_CT_RUN=/usr/sap/S4H/D00/exe',
-        `SAPLOCALHOSTFULL=${AP_HOST}.corp.com`,
-        'dbs_hdb_dbhost=s4hdb01.corp.com',
-        'dbs_hdb_dbname=S4H',
-        'PATH=/usr/sap/S4H/D00/exe:/usr/local/bin:/usr/bin:/bin',
-        'SHELL=/bin/bash',
-        'LANG=en_US.UTF-8',
-      ]);
+      apl(['OK',...getApEnv()]);
     }else if(!func){
       ap('사용법: sapcontrol -nr 00 -function <FunctionName>','wa');
     }else{
@@ -1280,19 +1281,7 @@ const CMDS={
       'DPMON — SID: S4H  Instance: D00  Host: s4happ01',
       '────────────────────────────────────────────────────────────────',
       ' No Ty   Pid   Status Start Err Sem  CPU   Time Program       Cl  User',
-      '  0 DIA 28473  Wait   2:07    0   0 0.02  1:25               000',
-      '  1 DIA 28474  Wait   2:07    0   0 0.12  2:41 SAPMV45A      100 TESTUSER',
-      '  2 DIA 28475  Run    2:07    0   0 1.82  0:04 RSBDCSUB      100 BASISADM',
-      '  3 DIA 28476  Wait   2:07    0   0 0.01  1:25               000',
-      '  4 DIA 28477  PRIV   2:07    0   0 0.44  8:12               100 DEVUSER',
-      '  5 DIA 28478  Wait   2:07    0   0 0.01  1:25               000',
-      '  6 BTC 28479  Wait   2:07    0   0 0.00  0:00               000',
-      '  7 BTC 28480  Run    2:07    0   0 0.55  0:12 RSSNAPDL      000',
-      '  8 BTC 28481  Wait   2:07    0   0 0.00  0:00               000',
-      '  9 SPO 28482  Wait   2:07    0   0 0.00  0:00               000',
-      ' 10 SPO 28483  Wait   2:07    0   0 0.00  0:00               000',
-      ' 11 UPD 28484  Wait   2:07    0   0 0.00  0:00               000',
-      ' 12 UPD2 28485 Wait   2:07    0   0 0.00  0:00               000',
+      ...WP_DATA.map(r=>`${r.no.padStart(3)} ${r.ty.padEnd(4)} ${r.pid}  ${r.st.padEnd(6)} 2:07    0   0 ${r.cpu}  ${r.time} ${r.prg.padEnd(13)} ${r.cl}${r.usr?' '+r.usr:''}`),
       '────────────────────────────────────────────────────────────────',
       'DIA: 6/6  BTC: 3/3  SPO: 2/2  UPD: 1/1  UPD2: 1/1',
     ]);
