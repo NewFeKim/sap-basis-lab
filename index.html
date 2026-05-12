@@ -69,6 +69,10 @@ body{background:#0d1117;display:flex;justify-content:center;align-items:flex-sta
     <span onclick="rc('vi /usr/sap/S4H/SYS/profile/DEFAULT.PFL')">vi profile</span>
     <span onclick="rc('R3trans -d')">R3trans -d</span>
     <span onclick="rc('env | grep SAP')">env|grep SAP</span>
+    <span onclick="rc('disp+work -V')">disp+work -V</span>
+    <span onclick="rc('sappfpar check pf=/usr/sap/S4H/SYS/profile/S4H_D00_s4happ01')">sappfpar check</span>
+    <span onclick="rc('saposcol -s')">saposcol -s</span>
+    <span onclick="rc('sapcontrol -nr 00 -function RestartService')">RestartService</span>
     <span onclick="rc('help')">help</span>
   </div>
   <!-- DB 서버 힌트 버튼 -->
@@ -83,6 +87,9 @@ body{background:#0d1117;display:flex;justify-content:center;align-items:flex-sta
     <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_BACKUP_CATALOG\"')">M_BACKUP_CATALOG</span>
     <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_CONNECTIONS\"')">M_CONNECTIONS</span>
     <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_SYSTEM_OVERVIEW\"')">M_SYSTEM_OVERVIEW</span>
+    <span onclick="rc('hdbuserstore list')">hdbuserstore list</span>
+    <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_VOLUME_SIZES\"')">M_VOLUME_SIZES</span>
+    <span onclick="rc('hdbsql -i 00 -u SYSTEM -p &lt;password&gt; \"SELECT * FROM M_LICENSE\"')">M_LICENSE</span>
     <span onclick="rc('hdbcons \"replication info\"')">hdbcons</span>
     <span onclick="rc('hdbbackupdiag --check')">hdbbackupdiag</span>
     <span onclick="rc('sapcontrol -nr 00 -function GetProcessList')">sc GetProcessList</span>
@@ -111,6 +118,12 @@ let dbCwd='/usr/sap/S4H/HDB00', dbUser='s4hdb01adm', dbOn=true;
 // 현재 활성 상태 (탭 전환 시 교체)
 let cwd=apCwd, user=apUser;
 let hist=[], hidx=-1, pagerLines=[], pagerPos=0, pagerActive=false;
+
+// DB 서버 — hdbuserstore 가상 키 저장소
+let hdbuserStore={
+  'BKPKEY':    {env:`${DB_HOST}:30013`, user:'SYSTEM'},
+  'DBACOCKPIT':{env:`${DB_HOST}:30015`, user:'SAPDBCTRL'},
+};
 
 /* ───────────────────────────────────────────
    AP 서버 가상 파일시스템
@@ -659,6 +672,16 @@ const CMDS={
         '    hdbcons "replication info"',
         '    hdbbackupdiag --check',
         '',
+        '  [HANA 사용자 스토어]',
+        '    hdbuserstore list',
+        '    hdbuserstore get <KEY>',
+        '    hdbuserstore set <KEY> <HOST:PORT> <USER> <PW>',
+        '    hdbuserstore delete <KEY>',
+        '',
+        '  [HANA SQL — 추가]',
+        '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_VOLUME_SIZES"',
+        '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_LICENSE"',
+        '',
         '  [파일시스템]',
         '    ls [-la] [path]    cd [path]    cat <file>    pwd',
         '    vi <file>    less <file>    find <path> -name "*.trc"',
@@ -694,6 +717,15 @@ const CMDS={
         '  [SAP 진단]',
         '    dpmon          sm50          R3trans -d',
         '    lgtst /H/s4happ01 /S/sapmsS4H',
+        '',
+        '  [SAP OS 도구]',
+        '    sappfpar -v <param> pf=<profile>',
+        '    sappfpar check pf=<profile>',
+        '    saposcol [-s|-d|-k]',
+        '    disp+work -V',
+        '    sapcontrol -nr 00 -function StartSystem',
+        '    sapcontrol -nr 00 -function StopSystem',
+        '    sapcontrol -nr 00 -function RestartService',
         '',
         '  [파일시스템]',
         '    ls [-la] [path]    cd [path]    cat <file>    pwd',
@@ -1208,6 +1240,42 @@ const CMDS={
     }
 
     /* ── AP 서버 (ABAP 인스턴스 제어) ── */
+    if(func==='Start'||func==='StartSystem'||func==='StartWait'){
+      echo();
+      if(sapOn){ap('OK','su');ap('Instance is already running','wa');return;}
+      ap('OK','su');
+      ap('Starting SAP instance D00 ...','in');
+      setTimeout(()=>{
+        ap('  Dispatcher     .... started','su');
+        setTimeout(()=>{
+          if(!dbOn){ap('  Work Processes .... failed (DB not running)','er');ap('FAIL: Startup of work processes failed','er');return;}
+          ap('  Work Processes .... started','su');
+          ap('SAP instance D00 started.','su');
+          sapOn=true;
+        },700);
+      },500);
+      return;
+    }
+    if(func==='Stop'||func==='StopSystem'||func==='StopWait'){
+      echo();
+      if(!sapOn){ap('OK','su');ap('Instance is already stopped','wa');return;}
+      ap('OK','su');
+      setTimeout(()=>{
+        ap('  Work Processes .... stopped','wa');
+        ap('  ICM            .... stopped','wa');
+        ap('  Dispatcher     .... stopped','wa');
+        ap('SAP instance D00 stopped.','su');
+        sapOn=false;
+      },600);
+      return;
+    }
+    if(func==='RestartService'){
+      echo();
+      ap('OK','su');
+      ap(`Restarting sapstartsrv on host ${AP_HOST} ...`);
+      ap('sapstartsrv restarted (PID 28470 → 29021)','su');
+      return;
+    }
     if(!sapOn&&func!=='GetSystemInstanceList'){
       ap('FAIL: NIECONN_REFUSED (Connection refused)','er');
       ap('sapcontrol: exit status: 3','er');return;
@@ -1316,6 +1384,89 @@ const CMDS={
       ap('lgtst finished successfully','su');
     }else{
       ap('Error: cannot connect to message server','er');
+    }
+  },
+
+  sappfpar(args){
+    if(activeTab!=='ap'){ap('bash: sappfpar: command not found','er');return;}
+    const joined=args.join(' ');
+    const pf=(joined.match(/pf=(\S+)/)||[])[1]||'/usr/sap/S4H/SYS/profile/S4H_D00_s4happ01';
+    const PARAMS={
+      'rdisp/wp_no_dia':'6','rdisp/wp_no_btc':'3','rdisp/wp_no_spo':'2',
+      'rdisp/wp_no_upd':'1','rdisp/wp_no_up2':'1',
+      'em/initial_size_MB':'4096',
+      'icm/server_port_0':'PROT=HTTP,PORT=8000',
+      'icm/server_port_1':'PROT=HTTPS,PORT=44300',
+      'rdisp/max_wprun_time':'600',
+      'login/system_client':'000',
+      'SAPGLOBALHOST':AP_HOST,'SAPSYSTEMNAME':'S4H','SAPSYSTEM':'00',
+    };
+    if(args[0]==='check'){
+      ap(`sappfpar: parameter check`);
+      ap(`profile: ${pf}`);
+      Object.entries(PARAMS).forEach(([k,v])=>ap(`  OK : ${k.padEnd(28)} = ${v}`,'su'));
+      ap('Profile check: OK','su');
+    }else if(args[0]==='-v'){
+      const param=args.slice(1).find(a=>!a.startsWith('pf='));
+      ap(`sappfpar: parameter query`);
+      ap(`profile: ${pf}`);
+      if(param&&PARAMS[param]!==undefined) ap(`${param} = ${PARAMS[param]}`,'su');
+      else if(param) ap(`${param} = (parameter not found)`,'wa');
+      else ap('사용법: sappfpar -v <param> pf=<profile>','wa');
+    }else{
+      ap('사용법:','wa');
+      ap('  sappfpar -v <param> pf=<profile>   (파라미터 단일 조회)','wa');
+      ap('  sappfpar check pf=<profile>        (전체 파라미터 체크)','wa');
+    }
+  },
+
+  saposcol(args){
+    if(activeTab!=='ap'){ap('bash: saposcol: command not found','er');return;}
+    const sub=args[0]||'';
+    if(sub==='-s'){
+      apl([
+        `SAP OS Collector running on ${AP_HOST}`,
+        `  PID              : 24315`,
+        `  Version          : 753, patch 1801, changelist 1943799`,
+        `  Collection interval: 60 seconds`,
+        `  OS type          : Linux`,
+        `  Data file        : /usr/sap/S4H/D00/work/saposcol.data`,
+      ],'su');
+    }else if(sub==='-k'){
+      ap('saposcol: stopping OS Collector (PID 24315) ...','wa');
+      ap('saposcol: stopped.','su');
+    }else if(sub==='-d'){
+      apl([
+        `SAP OS Collector — Detailed Status on ${AP_HOST}`,
+        `  OS type        : Linux 5.14.21 x86_64`,
+        `  CPU(s)         : 8`,
+        `  CPU load (1m)  : 1.23`,
+        `  Memory total   : 32768 MB`,
+        `  Memory free    : 12288 MB`,
+        `  Swap total     :  8192 MB`,
+        `  Swap free      :  8192 MB`,
+        `  Disk /usr/sap  : 48 GB used / 200 GB total (24%)`,
+      ]);
+    }else{
+      ap('SAP OS Collector — starting ...','in');
+      ap('saposcol: started (PID 24315)','su');
+    }
+  },
+
+  'disp+work'(args){
+    if(activeTab!=='ap'){ap('bash: disp+work: command not found','er');return;}
+    if(args[0]==='-V'){
+      apl([
+        'disp+work version 7530 (release 753 - 14.02.26 - 12:33:22)',
+        'compilation mode: UNICODE',
+        'SAP_BASIS: 756    SAP_ABA: 756',
+        `kernel id    : linuxx86_64_753`,
+        `build on     : suse-15 x86_64    cc5.5.0`,
+        `build time   : Feb 14 2026 12:33:22`,
+        `patch number : 900`,
+      ]);
+    }else{
+      ap(`disp+work: option '${args[0]||''}'은 지원하지 않습니다. (-V 옵션으로 버전 확인)`,'wa');
     }
   },
 
@@ -1453,9 +1604,22 @@ const CMDS={
         'Alerts          Medium priority alerts          1',
         '14 rows selected (execution time: 6.341 msec)','','OK','',
       ]);
+    }else if(sql.includes('M_VOLUME_SIZES')){
+      apl([
+        'HOST      PORT   SERVICE_NAME   VOL_ID  TYPE  TOTAL_SIZE       USED_SIZE',
+        's4hdb01   30003  indexserver         1  DATA  214748364800     51895123456',
+        's4hdb01   30003  indexserver         2  LOG   107374182400     12715802624',
+        '2 rows selected (execution time: 4.521 msec)','','OK','',
+      ]);
+    }else if(sql.includes('M_LICENSE')){
+      apl([
+        'SYSTEM_ID  HARDWARE_KEY   INSTALLED_DATE        EXPIRATION_DATE       PRODUCT_LIMIT  PRODUCT_USAGE  VALID',
+        'S4H        I1234567890    2024-01-15 00:00:00   9999-12-31 00:00:00              48             46  TRUE',
+        '1 row selected (execution time: 1.245 msec)','','OK','',
+      ]);
     }else if(sql){
       ap(`* 257: sql syntax error: ${sql}`,'er');
-      ap('(지원 쿼리: M_SERVICES, M_DATABASES, M_DISK_USAGE, M_BACKUP_CATALOG, M_CONNECTIONS, M_SYSTEM_OVERVIEW)','mu');
+      ap('(지원 쿼리: M_SERVICES, M_DATABASES, M_DISK_USAGE, M_BACKUP_CATALOG, M_CONNECTIONS, M_SYSTEM_OVERVIEW, M_VOLUME_SIZES, M_LICENSE)','mu');
     }else{
       ap('사용법: hdbsql -i 00 -u <user> -p <pw> "SELECT * FROM <view>"','wa');
     }
@@ -1488,6 +1652,40 @@ const CMDS={
       ap('(지원 명령어: "replication info")','mu');
     }else{
       ap('사용법: hdbcons "replication info"','wa');
+    }
+  },
+
+  hdbuserstore(args){
+    if(activeTab!=='db'){ap('bash: hdbuserstore: command not found','er');return;}
+    const sub=args[0]||'', key=args[1]||'';
+    const header=()=>{
+      ap(`DATA FILE       : /home/${user}/.hdb/${DB_HOST}/SSFS_HDB.DAT`);
+      ap(`KEY FILE        : /home/${user}/.hdb/${DB_HOST}/SSFS_HDB.KEY`);
+      ap('');
+    };
+    if(sub==='list'){
+      header();
+      const keys=Object.entries(hdbuserStore);
+      if(!keys.length){ap('(No entries)','mu');}
+      else keys.forEach(([k,v])=>{ap(`KEY ${k}`);ap(`  ENV : ${v.env}`);ap(`  USER: ${v.user}`);});
+    }else if(sub==='get'){
+      if(!key){ap('사용법: hdbuserstore get <KEY>','wa');return;}
+      if(!hdbuserStore[key]){ap(`* Key '${key}' does not exist`,'er');return;}
+      header();
+      ap(`KEY ${key}`);ap(`  ENV : ${hdbuserStore[key].env}`);ap(`  USER: ${hdbuserStore[key].user}`);
+    }else if(sub==='set'){
+      // hdbuserstore set KEY HOST:PORT USER PASSWORD
+      const env=args[2]||'', huser=args[3]||'';
+      if(!key||!env||!huser){ap('사용법: hdbuserstore set <KEY> <HOST:PORT> <USER> <PASSWORD>','wa');return;}
+      hdbuserStore[key]={env,user:huser};
+      ap(`Key '${key}' set successfully.`,'su');
+    }else if(sub==='delete'){
+      if(!key){ap('사용법: hdbuserstore delete <KEY>','wa');return;}
+      if(!hdbuserStore[key]){ap(`* Key '${key}' does not exist`,'er');return;}
+      delete hdbuserStore[key];
+      ap(`Key '${key}' deleted.`,'su');
+    }else{
+      ap('사용법: hdbuserstore list | get <KEY> | set <KEY> <ENV> <USER> <PW> | delete <KEY>','wa');
     }
   },
 
