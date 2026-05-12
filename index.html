@@ -118,6 +118,7 @@ let dbCwd='/usr/sap/S4H/HDB00', dbUser='s4hdb01adm', dbOn=true;
 // 현재 활성 상태 (탭 전환 시 교체)
 let cwd=apCwd, user=apUser;
 let hist=[], hidx=-1, pagerLines=[], pagerPos=0, pagerActive=false;
+let activeTailTid=null; // tail -f 인터벌 추적 (탭 전환/Ctrl+C 시 취소)
 
 // DB 서버 — hdbuserstore 가상 키 저장소
 let hdbuserStore={
@@ -479,6 +480,7 @@ function switchTab(tab){
 
   document.getElementById('output').innerHTML='';
   pagerQuit();
+  if(activeTailTid){clearInterval(activeTailTid);activeTailTid=null;}
   up();
 
   if(tab==='ap'){
@@ -524,7 +526,9 @@ function doGrep(pattern,filePath,opts){
     content='';
   }
   const invert=opts.includes('v'),ci=opts.includes('i'),linenum=opts.includes('n');
-  const re=new RegExp(pattern,ci?'i':'');
+  let re;
+  try{re=new RegExp(pattern,ci?'i':'');}
+  catch(e){ap(`grep: invalid regex '${pattern}': ${e.message}`,'er');return;}
   const matched=content.split('\n').filter(l=>invert?!re.test(l):re.test(l));
   if(!matched.length){ap('(일치하는 행 없음)','mu');return;}
   matched.forEach((l,i)=>{
@@ -561,11 +565,12 @@ function doTail(args){
       `M  ThRqNew: new request from ICM (client 10.10.1.10)`,
       `M  ThVBEnd: WP back to free state (type DIA, no.${cnt%6})`,
     ];
-    const tid=setInterval(()=>{
+    if(activeTailTid){clearInterval(activeTailTid);activeTailTid=null;}
+    activeTailTid=setInterval(()=>{
       cnt++;
       ap(msgs[cnt%msgs.length],'mu');
       document.getElementById('output').scrollTop=99999;
-      if(cnt>=6)clearInterval(tid);
+      if(cnt>=6){clearInterval(activeTailTid);activeTailTid=null;}
     },1200);
   }
 }
@@ -582,7 +587,9 @@ function doFind(args){
     (FS[dir]||[]).forEach(e=>{
       const full=(dir==='/'?'':dir)+'/'+e;
       const isDir=!!FS[full];
-      const mName=!name||new RegExp('^'+name.replace(/\*/g,'.*').replace(/\?/g,'.')+'$').test(e);
+      // * 와 ? 는 glob 와일드카드이므로 이스케이프 제외, 나머지 regex 메타문자만 이스케이프
+      const escaped=name.replace(/[.+^${}()|[\]\\]/g,'\\$&');
+      const mName=!name||new RegExp('^'+escaped.replace(/\*/g,'.*').replace(/\?/g,'.')+'$').test(e);
       const mType=!type||(type==='d'&&isDir)||(type==='f'&&!isDir);
       if(mName&&mType)results.push(full);
       if(isDir)walk(full);
@@ -1422,6 +1429,7 @@ const CMDS={
 
   saposcol(args){
     if(activeTab!=='ap'){ap('bash: saposcol: command not found','er');return;}
+    if(!sapOn){ap('saposcol: SAP instance not running — sapstartsrv unavailable','er');return;}
     const sub=args[0]||'';
     if(sub==='-s'){
       apl([
@@ -1675,9 +1683,9 @@ const CMDS={
       ap(`KEY ${key}`);ap(`  ENV : ${hdbuserStore[key].env}`);ap(`  USER: ${hdbuserStore[key].user}`);
     }else if(sub==='set'){
       // hdbuserstore set KEY HOST:PORT USER PASSWORD
-      const env=args[2]||'', huser=args[3]||'';
-      if(!key||!env||!huser){ap('사용법: hdbuserstore set <KEY> <HOST:PORT> <USER> <PASSWORD>','wa');return;}
-      hdbuserStore[key]={env,user:huser};
+      const env=args[2]||'', huser=args[3]||'', pw=args[4]||'';
+      if(!key||!env||!huser||!pw){ap('사용법: hdbuserstore set <KEY> <HOST:PORT> <USER> <PASSWORD>','wa');return;}
+      hdbuserStore[key]={env,user:huser}; // pw는 보안상 저장 안 함 (실제 동작과 동일)
       ap(`Key '${key}' set successfully.`,'su');
     }else if(sub==='delete'){
       if(!key){ap('사용법: hdbuserstore delete <KEY>','wa');return;}
@@ -1751,7 +1759,9 @@ function rc(input){
         const flagArgs=f.args.filter(a=>a.startsWith('-'));
         const rest=f.args.filter(a=>!a.startsWith('-'));
         const opts=flagArgs.join('').replace(/-/g,''),pat=rest[0]||'';
-        const re=new RegExp(pat,opts.includes('i')?'i':'');
+        let re;
+        try{re=new RegExp(pat,opts.includes('i')?'i':'');}
+        catch(e){ap(`grep: invalid regex '${pat}': ${e.message}`,'er');return;}
         const invert=opts.includes('v');
         items.forEach(el=>{
           if(invert?re.test(el.textContent):!re.test(el.textContent))
@@ -1812,7 +1822,11 @@ document.getElementById('ci').addEventListener('keydown',e=>{
       }else if(matches.length>1){apc(val);ap(matches.join('   '));}
     }
   }else if(e.ctrlKey&&e.key==='l'){e.preventDefault();CMDS.clear();}
-  else if(e.ctrlKey&&e.key==='c'){ap('^C','mu');e.target.value='';if(pagerActive)pagerQuit();}
+  else if(e.ctrlKey&&e.key==='c'){
+    ap('^C','mu');e.target.value='';
+    if(pagerActive)pagerQuit();
+    if(activeTailTid){clearInterval(activeTailTid);activeTailTid=null;ap('(tail -f 종료)','mu');}
+  }
   else if(e.key===' '&&pagerActive){e.preventDefault();pagerNext();}
   else if(e.key==='q'&&pagerActive){e.preventDefault();pagerQuit();}
 });
