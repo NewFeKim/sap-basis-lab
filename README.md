@@ -1,7 +1,7 @@
 # SAP Basis Training Terminal
 
 신입 SAP Basis 컨설턴트를 위한 **웹 기반 OS단 교육용 터미널 시뮬레이터**입니다.  
-실제 SAP 시스템 없이 브라우저에서 AP 서버 / DB 서버의 디렉토리 구조, 환경변수, 명령어를 실습할 수 있습니다.
+실제 SAP 시스템 없이 브라우저에서 AP 서버 / DB 서버의 디렉토리 구조, 환경변수, 명령어를 실습하고 퀴즈로 점검할 수 있습니다.
 
 ---
 
@@ -103,13 +103,22 @@ tail -f /usr/sap/S4H/HDB00/trace/nameserver_s4hdb01.30001.000.trc
 ls -la /usr/sap/S4H    cd /hana/shared    cat /etc/hosts    pwd
 vi /usr/sap/S4H/SYS/profile/DEFAULT.PFL
 find /usr/sap/S4H -name "*.log"
+find /usr/sap/S4H -size +5M          # 파일 크기 필터
+find /usr/sap/S4H -mtime -1          # 최근 1일 내 수정
 grep -i error /var/log/messages
 
 # OS 리소스
 df -h    free -m    top    ps aux    uptime    vmstat
+du -sh /usr/sap/trans
+du -h --max-depth=1 /usr/sap/trans
 
 # 네트워크
 netstat -tlnp    ss -tlnp    lsof -i :30015
+ping s4hdb01 -c 4
+
+# 서비스 상태
+systemctl status sapinit
+systemctl status hdbdaemon
 
 # 파이프 & 리다이렉션
 ps aux | grep dw
@@ -119,7 +128,7 @@ env | grep SAP
 
 ---
 
-## AP ↔ DB 연계 시뮬레이션
+### AP ↔ DB 연계 시뮬레이션
 
 실제 SAP 환경과 동일하게 AP/DB 간 의존관계가 구현되어 있습니다.
 
@@ -132,6 +141,52 @@ env | grep SAP
 
 ---
 
+## 퀴즈 시스템 (Phase 3)
+
+오른쪽 상단 **Quiz** 버튼으로 진입합니다.
+
+### 특징
+
+- **77개 시나리오** — 카테고리 A~P (기동/정지, 트레이스, 백업, 네트워크, 보안 감사 등)
+- **단계별 모드** — 순서대로 안내받으며 실습
+- **자유 모드** — 목표 상태만 주어지고 자유롭게 명령어 실행
+- **힌트** — 요청 시에만 표시 (자동 표시 없음)
+- **진도 저장** — localStorage에 자동 저장 (브라우저 닫아도 유지)
+- **채점 없음** — 피드백 위주, 부담 없는 실습 환경
+
+### 시나리오 카테고리
+
+| 카테고리 | 내용 | 시나리오 수 |
+|----------|------|------------|
+| A | SAP 기동/정지 | 6개 |
+| B | SAP 상태 확인 | 5개 |
+| C | Work Process 진단 | 5개 |
+| D | 트레이스 파일 분석 | 5개 |
+| E | 프로파일 파라미터 | 5개 |
+| F | 사용자/권한 관리 | 5개 |
+| G | HANA 기동/정지 | 5개 |
+| H | HANA SQL 조회 | 5개 |
+| I | HANA 백업/복구 | 5개 |
+| J | HANA 복제 확인 | 5개 |
+| K | 전송 관리 | 5개 |
+| L | 디스크/메모리 진단 | 5개 |
+| M | 보안 감사 로그 | 5개 |
+| N | 네트워크 진단 | 5개 |
+| O | 서비스 기동 확인 | 4개 |
+| P | 종합 실습 | 2개 |
+
+### 검증 방식
+
+퀴즈는 3가지 방식으로 수행을 검증합니다.
+
+| 타입 | 설명 |
+|------|------|
+| `cmd` | 입력한 명령어가 정규식 패턴과 일치하는지 확인 |
+| `tab` | AP↔DB 서버 탭을 올바른 순서로 전환했는지 확인 |
+| `state` | SAP/HANA 기동 상태 변수가 목표값에 도달했는지 확인 |
+
+---
+
 ## 실행 방법
 
 별도 설치 없이 파일을 열면 바로 실행됩니다.
@@ -141,7 +196,7 @@ env | grep SAP
 open index.html       # macOS
 start index.html      # Windows
 
-# 로컬 웹서버로 실행 (선택사항)
+# 로컬 웹서버로 실행 (권장 — 퀴즈 진도 저장 안정화)
 python3 -m http.server 8080
 # → 브라우저에서 http://localhost:8080 접속
 ```
@@ -165,6 +220,7 @@ GitHub Pages, S3 정적 호스팅 등에 `index.html` 파일 하나만 업로드
 | v1 | 2026-05-07 | MVP: SAP 기본 명령어 15개, 기본 파일시스템 |
 | v2 | 2026-05-07 | grep/tail -f/find/vi/less/netstat/lsof 추가, 파이프 실제 동작, dpmon/sm50 추가 |
 | v3 | 2026-05-08 | DB 서버 탭 추가 (HANA), sapcontrol AP/DB 통합, AP↔DB 연계 시뮬레이션 |
+| v4 | 2026-05-13 | 퀴즈 시스템 (77개 시나리오, 단계별/자유 모드), find -size/-mtime, ping, du, systemctl 추가 |
 
 ---
 
