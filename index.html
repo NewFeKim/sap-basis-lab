@@ -627,8 +627,8 @@ function switchTab(tab){
   document.getElementById('hb-ap').style.display=tab==='ap'?'flex':'none';
   document.getElementById('hb-db').style.display=tab==='db'?'flex':'none';
   document.getElementById('tt-title').textContent=tab==='ap'
-    ?'SAP Basis Training Terminal v2 — AP Server (SLES 15 SP4) — SID: S4H'
-    :'SAP Basis Training Terminal v2 — DB Server (SLES 15 SP4) — SID: S4H / HANA 2.0';
+    ?'SAP Basis Training Terminal v3 — AP Server (SLES 15 SP4) — SID: S4H'
+    :'SAP Basis Training Terminal v3 — DB Server (SLES 15 SP4) — SID: S4H / HANA 2.0';
 
   document.getElementById('output').innerHTML='';
   pagerQuit();
@@ -673,11 +673,11 @@ function pagerQuit(){
 ─────────────────────────────────────────── */
 const FILE_META={
   '/usr/sap/S4H/HDB00/trace/indexserver_s4hdb01.30003.000.trc':{size_mb:152,mtime_days:5},
-  '/usr/sap/S4H/D00/work/dev_w0':{size_mb:8,mtime_days:1},
-  '/usr/sap/S4H/D00/work/dev_disp':{size_mb:3,mtime_days:1},
-  '/usr/sap/S4H/D00/work/dev_icm':{size_mb:2,mtime_days:1},
-  '/usr/sap/S4H/D00/work/dev_ms':{size_mb:1,mtime_days:1},
-  '/usr/sap/S4H/D00/work/sapstart.log':{size_mb:0.5,mtime_days:1},
+  '/usr/sap/S4H/D00/work/dev_w0':{size_mb:8,mtime_days:0},
+  '/usr/sap/S4H/D00/work/dev_disp':{size_mb:3,mtime_days:0},
+  '/usr/sap/S4H/D00/work/dev_icm':{size_mb:2,mtime_days:0},
+  '/usr/sap/S4H/D00/work/dev_ms':{size_mb:1,mtime_days:0},
+  '/usr/sap/S4H/D00/work/sapstart.log':{size_mb:0.5,mtime_days:0},
   '/usr/sap/S4H/SYS/profile/DEFAULT.PFL':{size_mb:0.1,mtime_days:30},
   '/usr/sap/S4H/SYS/profile/S4H_D00_s4happ01':{size_mb:0.1,mtime_days:30},
   '/usr/sap/trans/data/R000123.S4H':{size_mb:45,mtime_days:2},
@@ -776,16 +776,18 @@ function doFind(args){
     }else if(!a.startsWith('-'))path=a;
   }
   const base=rp(path),results=[];
-  function matchSize(full){
+  function matchSize(full,isDir){
     if(!sizeOp)return true;
+    if(isDir){const mb=0.004;if(sizeOp==='+')return mb>sizeMb;if(sizeOp==='-')return mb<sizeMb;return false;}
     const m=FILE_META[full];
     const mb=m?m.size_mb:0.5; // 메타 없으면 기본값
     if(sizeOp==='+')return mb>sizeMb;
     if(sizeOp==='-')return mb<sizeMb;
     return Math.round(mb)===Math.round(sizeMb);
   }
-  function matchMtime(full){
+  function matchMtime(full,isDir){
     if(!mtimeOp)return true;
+    if(isDir)return false; // 디렉토리는 mtime 필터에서 제외
     const m=FILE_META[full];
     const d=m?m.mtime_days:5;
     if(mtimeOp==='+')return d>mtimeDays;
@@ -800,8 +802,8 @@ function doFind(args){
       const escaped=name.replace(/[.+^${}()|[\]\\]/g,'\\$&');
       const mName=!name||new RegExp('^'+escaped.replace(/\*/g,'.*').replace(/\?/g,'.')+'$').test(e);
       const mType=!type||(type==='d'&&isDir)||(type==='f'&&!isDir);
-      const mSize=isDir||matchSize(full);
-      const mMtime=isDir||matchMtime(full);
+      const mSize=matchSize(full,isDir);
+      const mMtime=matchMtime(full,isDir);
       if(mName&&mType&&mSize&&mMtime)results.push(full);
       if(isDir)walk(full);
     });
@@ -1974,9 +1976,11 @@ const CMDS={
   /* ─── 공통 명령어 (AP/DB 모두 사용 가능) ─── */
 
   ping(args){
-    const host=args.find(a=>!a.startsWith('-'))||'';
     const cArg=args.indexOf('-c');
     const count=cArg>=0?parseInt(args[cArg+1])||4:4;
+    // -c 뒤 숫자 인덱스를 건너뛰고 호스트를 찾음
+    const skipIdx=new Set(cArg>=0?[cArg,cArg+1]:[]);
+    const host=args.find((a,i)=>!skipIdx.has(i)&&!a.startsWith('-'))||'';
     if(!host){ap('Usage: ping [-c count] <host>','wa');return;}
     const knownHosts={
       's4happ01':{'ip':'10.10.1.51','fqdn':'s4happ01.corp.com'},
@@ -3261,7 +3265,7 @@ function rc(input){
     if(typeof QuizEngine!=='undefined'){
       QuizEngine.onCmd(input);
       // setTimeout으로 비동기 상태 변경(startsap/stopsap 등) 후 state 체크
-      setTimeout(()=>QuizEngine.onState(),1200);
+      setTimeout(()=>QuizEngine.onState(),2000);
     }
   }else{
     ap(`bash: ${cmd}: command not found`,'er');
