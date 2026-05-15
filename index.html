@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAP Basis Training Terminal v3</title>
+<title>SAP Basis Training Terminal v4</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0d1117;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:24px 16px;font-family:'Menlo','Courier New',monospace}
@@ -74,7 +74,7 @@ body{background:#0d1117;display:flex;justify-content:center;align-items:flex-sta
 <div id="tr">
   <div class="tb">
     <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
-    <span class="tt" id="tt-title">SAP Basis Training Terminal v3 — AP Server (SLES 15 SP4) — SID: S4H</span>
+    <span class="tt" id="tt-title">SAP Basis Training Terminal v4 — AP Server (SLES 15 SP4) — SID: S4H</span>
     <span class="qz-btn" onclick="QuizUI.openList()">📝 퀴즈</span>
   </div>
   <div class="stabs">
@@ -627,8 +627,8 @@ function switchTab(tab){
   document.getElementById('hb-ap').style.display=tab==='ap'?'flex':'none';
   document.getElementById('hb-db').style.display=tab==='db'?'flex':'none';
   document.getElementById('tt-title').textContent=tab==='ap'
-    ?'SAP Basis Training Terminal v3 — AP Server (SLES 15 SP4) — SID: S4H'
-    :'SAP Basis Training Terminal v3 — DB Server (SLES 15 SP4) — SID: S4H / HANA 2.0';
+    ?'SAP Basis Training Terminal v4 — AP Server (SLES 15 SP4) — SID: S4H'
+    :'SAP Basis Training Terminal v4 — DB Server (SLES 15 SP4) — SID: S4H / HANA 2.0';
 
   document.getElementById('output').innerHTML='';
   pagerQuit();
@@ -2073,12 +2073,12 @@ const CMDS={
     // AP 서버 서비스
     const AP_SVCS={
       'sapinit':{desc:'SAP System Startup/Shutdown',running:()=>sapOn},
-      'sapstartsrv_S4H_00':{desc:'SAP Start Service S4H 00',running:()=>sapOn||true}, // sapstartsrv는 별도 동작
+      'sapstartsrv_S4H_00':{desc:'SAP Start Service S4H 00',running:()=>true}, // sapstartsrv는 SAP 정지 시에도 독립 실행 유지
     };
     // DB 서버 서비스
     const DB_SVCS={
       'hdbdaemon':{desc:'SAP HANA DB Daemon (S4H HDB00)',running:()=>dbOn},
-      'sapstartsrv_S4H_HDB00':{desc:'SAP Start Service S4H HDB00',running:()=>dbOn||true},
+      'sapstartsrv_S4H_HDB00':{desc:'SAP Start Service S4H HDB00',running:()=>true}, // sapstartsrv는 HANA 정지 시에도 독립 실행 유지
     };
     const svcMap=activeTab==='db'?DB_SVCS:AP_SVCS;
     const info=svcMap[svc];
@@ -2147,7 +2147,7 @@ const QuizStorage={
     catch{this._data={};}
     return this._data;
   },
-  _save(){localStorage.setItem(this.KEY,JSON.stringify(this._data));},
+  _save(){try{localStorage.setItem(this.KEY,JSON.stringify(this._data));}catch(e){/* storage full 등 — 진도 저장 실패해도 완료 UI는 계속 표시 */}},
   markDone(id){const d=this._load();d[id]=(d[id]||{});d[id].done=true;d[id].ts=Date.now();this._save();},
   isDone(id){return!!(this._load()[id]||{}).done;},
   getAll(){return this._load();},
@@ -2252,12 +2252,11 @@ const QuizEngine={
 
   _checkFree(){
     const g=this.quiz.freeform.goalState;
-    if(!g)return;
-    let allMet=true;
-    if(g.sapOn!==undefined&&sapOn!==g.sapOn)allMet=false;
-    if(g.dbOn!==undefined&&dbOn!==g.dbOn)allMet=false;
-    if(g.tab!==undefined&&activeTab!==g.tab)allMet=false;
-    if(allMet)this._complete();
+    if(!g||Object.keys(g).length===0)return; // goalState가 없거나 빈 객체면 자유 탐색 모드 — 자동 완료 없음
+    const done=(g.sapOn===undefined||sapOn===g.sapOn)
+             &&(g.dbOn===undefined||dbOn===g.dbOn)
+             &&(g.tab===undefined||activeTab===g.tab);
+    if(done)this._complete();
   },
 
   _passStep(){
@@ -3255,6 +3254,11 @@ function rc(input){
         });
       }
     });
+    // 파이프 명령어도 퀴즈 검증 대상
+    if(typeof QuizEngine!=='undefined'){
+      QuizEngine.onCmd(input);
+      setTimeout(()=>QuizEngine.onState(),2000);
+    }
     return;
   }
 
