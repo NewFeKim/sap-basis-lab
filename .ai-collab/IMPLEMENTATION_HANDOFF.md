@@ -9,18 +9,17 @@ Preferred review flow is now PR-based. For PR reviews, update:
 ## Status
 
 - Owner: Claude Code
-- Branch: main
-- Head commit: e79068b
+- Branch: fix/freemode-manual-complete
+- Head commit: (see PR)
 - Last updated: 2026-05-15
+- Related issue: #1
 
 ## Goal
 
-Phase 3 퀴즈 시스템의 우선 수정 3건 처리 후 codex-review 전체 클린 달성.
+Issue #1: 자유 모드 `goalState:{}` 시나리오(60개)에 수동 완료 경로 추가.
+사용자가 탐색을 마친 뒤 「✅ 학습 완료」 버튼을 눌러 완료 배너와 진도 저장을 트리거.
 
-우선 수정 대상:
-1. 자유 모드 `goalState:{}` 자동 완료 문제
-2. 파이프 명령이 `QuizEngine.onCmd()`를 호출하지 않아 퀴즈 단계가 진행되지 않는 문제
-3. `localStorage` 저장 실패 시 완료 UI가 깨질 수 있는 문제
+이전 작업: Phase 3 퀴즈 시스템 우선 수정 3건 (e79068b)
 
 ## Changed Files
 

@@ -64,6 +64,7 @@ body{background:#0d1117;display:flex;justify-content:center;align-items:flex-sta
 .qz-ctrl span:hover{color:#c9d1d9}
 .qz-ctrl .qz-hint-btn{color:#e3b341}.qz-ctrl .qz-hint-btn:hover{color:#f5c842}
 .qz-ctrl .qz-abort{color:#f85149}.qz-ctrl .qz-abort:hover{color:#ff6b6b}
+.qz-ctrl .qz-done-btn{color:#56d364;background:#0d2a0d;border:1px solid #56d364;padding:1px 8px;border-radius:4px}.qz-ctrl .qz-done-btn:hover{background:#1a4a1a}
 #qz-hint-box{display:none;font-size:11px;color:#e3b341;background:#1c1a10;border:1px solid #3d3400;border-radius:5px;padding:6px 10px;margin-top:5px;white-space:pre-wrap}
 #qz-hint-box.open{display:block}
 #qz-done-banner{display:none;text-align:center;padding:8px 16px;font-size:12px;background:#0d2318;color:#56d364;border-top:1px solid #238636;flex-shrink:0}
@@ -152,6 +153,7 @@ body{background:#0d1117;display:flex;justify-content:center;align-items:flex-sta
     <div class="qz-ctrl">
       <span class="qz-hint-btn" onclick="QuizUI.showHint()">💡 힌트 보기</span>
       <span onclick="QuizUI.switchMode()">⇄ 모드 전환</span>
+      <span class="qz-done-btn" id="qz-manual-done" style="display:none" onclick="QuizEngine.completeManually()">✅ 학습 완료</span>
       <span class="qz-abort" onclick="QuizEngine.abort()">✕ 퀴즈 종료</span>
     </div>
     <div id="qz-hint-box"></div>
@@ -2272,6 +2274,14 @@ const QuizEngine={
     }
   },
 
+  // 자유 모드 + 빈 goalState 시나리오에서 사용자가 직접 완료를 선언
+  completeManually(){
+    if(!this.active||this.mode!=='free')return;
+    const g=this.quiz.freeform.goalState;
+    if(g&&Object.keys(g).length>0)return; // 자동 완료 대상은 버튼 비활성
+    this._complete();
+  },
+
   _complete(){
     this.active=false;
     diskFullSim=false;memLowSim=false; // 시뮬 토글 해제
@@ -2382,6 +2392,11 @@ const QuizUI={
       document.getElementById('qz-step-badge').style.display='none';
       instrEl.textContent=q.freeform.description;
     }
+    // 수동 완료 버튼: 자유 모드 + goalState가 빈 객체인 경우에만 표시
+    const manualDoneBtn=document.getElementById('qz-manual-done');
+    const g=q.freeform?q.freeform.goalState:{};
+    const showBtn=QuizEngine.mode==='free'&&(!g||Object.keys(g).length===0);
+    manualDoneBtn.style.display=showBtn?'':'none';
     document.getElementById('qz-hint-box').className='';
   },
 
