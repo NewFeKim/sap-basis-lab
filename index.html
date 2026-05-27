@@ -6,28 +6,92 @@
 <title>SAP Basis Training Terminal v4</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0d1117;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:24px 16px;font-family:'Menlo','Courier New',monospace}
-#tr{width:100%;max-width:960px;background:#0d1117;position:relative;color:#c9d1d9;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;font-size:13px;border:1px solid #30363d;min-height:600px}
+
+/* ── 페이지 (화이트 톤) ── */
+body{
+  background:#f0f2f5;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-height:100vh;
+  min-height:100dvh;
+  padding:20px 20px;
+  font-family:'Menlo','Courier New',monospace;
+}
+
+/* ── 페이지 헤더 ── */
+.page-hd{
+  width:100%;
+  max-width:1400px;
+  margin-bottom:10px;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+}
+.page-hd-title{font-size:15px;font-weight:700;color:#1f2937;letter-spacing:-.2px}
+.page-hd-sub{font-size:12px;color:#6b7280}
+
+/* ── 터미널 컨테이너 (반응형) ── */
+#tr{
+  width:100%;
+  max-width:1400px;
+  height:calc(100dvh - 88px);  /* 페이지 패딩 + 헤더 높이 제외 */
+  min-height:520px;
+  background:#0d1117;
+  position:relative;
+  color:#c9d1d9;
+  border-radius:10px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  font-size:13px;
+  border:1px solid #30363d;
+  box-shadow:0 4px 24px rgba(0,0,0,.15),0 1px 4px rgba(0,0,0,.1);
+}
+
 .tb{background:#161b22;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #30363d;flex-shrink:0}
 .dot{width:12px;height:12px;border-radius:50%}
 .dr{background:#ff5f57}.dy{background:#ffbd2e}.dg{background:#28ca41}
-.tt{margin-left:8px;font-size:11px;color:#8b949e;letter-spacing:.5px}
+.tt{margin-left:8px;font-size:11px;color:#8b949e;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stabs{display:flex;background:#0d1117;border-bottom:1px solid #30363d;flex-shrink:0}
-.stab{padding:6px 18px;font-size:11px;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;user-select:none;transition:color .15s}
+.stab{padding:7px 20px;font-size:12px;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;user-select:none;transition:color .15s}
 .stab.on{color:#58a6ff;border-bottom-color:#58a6ff}
 .stab:hover:not(.on){color:#c9d1d9}
-.out{overflow-y:auto;padding:12px 16px;line-height:1.65;flex:1;min-height:440px;max-height:500px}
-.out::-webkit-scrollbar{width:5px}
+
+/* ── 출력 영역 (flex로 남은 공간 전부 사용) ── */
+.out{overflow-y:auto;padding:14px 18px;line-height:1.7;flex:1;min-height:0}
+.out::-webkit-scrollbar{width:6px}
 .out::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
-.ln{white-space:pre-wrap;word-break:break-all;min-height:1.65em}
+.out::-webkit-scrollbar-track{background:transparent}
+
+.ln{white-space:pre-wrap;word-break:break-all;min-height:1.7em}
 .ln.su{color:#56d364}.ln.er{color:#f85149}.ln.wa{color:#e3b341}
 .ln.in{color:#79c0ff}.ln.mu{color:#6e7681}
-.pg{background:#0d1117;padding:7px 16px;border-top:1px solid #30363d;font-size:11px;color:#6e7681;display:none;align-items:center;gap:12px;flex-shrink:0}
-.ir{display:flex;align-items:center;padding:8px 16px 12px;border-top:1px solid #21262d;gap:6px;flex-shrink:0;background:#0d1117}
+.pg{background:#0d1117;padding:7px 18px;border-top:1px solid #30363d;font-size:11px;color:#6e7681;display:none;align-items:center;gap:12px;flex-shrink:0}
+.ir{display:flex;align-items:center;padding:9px 18px 13px;border-top:1px solid #21262d;gap:6px;flex-shrink:0;background:#0d1117}
 .pl{color:#56d364;font-size:13px;white-space:nowrap;flex-shrink:0}
 #ci{flex:1;background:transparent;border:none;outline:none;color:#e6edf3;font-family:'Menlo','Courier New',monospace;font-size:13px;caret-color:#e6edf3}
-.hb{padding:6px 16px;background:#161b22;font-size:11px;color:#6e7681;border-top:1px solid #21262d;flex-shrink:0;display:flex;gap:12px;flex-wrap:wrap}
+.hb{padding:6px 18px;background:#161b22;font-size:11px;color:#6e7681;border-top:1px solid #21262d;flex-shrink:0;display:flex;gap:12px;flex-wrap:wrap}
 .hb span{cursor:pointer;transition:color .1s}.hb span:hover{color:#c9d1d9}
+
+/* ── 반응형 ── */
+/* 태블릿 (≤1024px) */
+@media(max-width:1024px){
+  body{padding:14px 14px}
+  .page-hd{margin-bottom:8px}
+  #tr{height:calc(100dvh - 76px);font-size:13px}
+}
+/* 모바일 (≤640px) */
+@media(max-width:640px){
+  body{padding:0}
+  .page-hd{display:none}
+  #tr{height:100dvh;height:100svh;border-radius:0;border:none;box-shadow:none;font-size:12px;min-height:unset}
+  .stab{padding:6px 14px;font-size:11px}
+  .out{padding:10px 12px}
+  .ir{padding:7px 12px 10px}
+  .hb{padding:5px 12px;gap:10px}
+  .tt{font-size:10px}
+}
 /* ── 퀴즈 UI ── */
 .qz-btn{margin-left:auto;padding:3px 10px;font-size:11px;color:#58a6ff;border:1px solid #30363d;border-radius:5px;cursor:pointer;user-select:none;transition:background .15s}
 .qz-btn:hover{background:#1f2937}
@@ -72,6 +136,10 @@ body{background:#0d1117;display:flex;justify-content:center;align-items:flex-sta
 </style>
 </head>
 <body>
+<header class="page-hd">
+  <span class="page-hd-title">SAP Basis Training Terminal</span>
+  <span class="page-hd-sub">신입 Basis 컨설턴트를 위한 OS단 실습 환경 · v4</span>
+</header>
 <div id="tr">
   <div class="tb">
     <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
