@@ -92,32 +92,11 @@ body{
   .hb{padding:5px 12px;gap:10px}
   .tt{font-size:10px}
 }
-/* ── 피드백 위젯 ── */
-#fb-widget{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;align-items:flex-end;gap:10px;font-family:system-ui,-apple-system,sans-serif}
-#fb-toggle{width:48px;height:48px;border-radius:50%;background:#1f2937;border:none;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.25);transition:transform .15s,background .15s;flex-shrink:0}
-#fb-toggle:hover{background:#374151;transform:scale(1.08)}
-#fb-panel{display:none;background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);width:285px;overflow:hidden;animation:fbSlide .15s ease}
-#fb-panel.open{display:block}
-@keyframes fbSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.fb-hd{background:#1f2937;color:#f9fafb;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;letter-spacing:-.2px}
-.fb-close{cursor:pointer;opacity:.6;font-size:15px;line-height:1;transition:opacity .1s}.fb-close:hover{opacity:1}
-.fb-star{display:flex;align-items:center;gap:10px;padding:13px 16px;color:#1f2937;text-decoration:none;font-size:13px;font-weight:500;transition:background .15s;border-bottom:1px solid #f3f4f6}
-.fb-star:hover{background:#fef9c3}
-.fb-star-ico{font-size:18px}
-.fb-star-lbl{display:flex;flex-direction:column;gap:1px}
-.fb-star-lbl span:last-child{font-size:10px;color:#6b7280;font-weight:400}
-#fb-form-area{padding:12px 14px;display:flex;flex-direction:column;gap:7px}
-.fb-flabel{font-size:11px;color:#6b7280;font-weight:600;letter-spacing:.2px}
-.fb-input{width:100%;border:1px solid #e5e7eb;border-radius:7px;padding:7px 10px;font-size:12px;color:#1f2937;outline:none;font-family:inherit;transition:border-color .15s;resize:none;background:#fff}
-.fb-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
-textarea.fb-input{min-height:72px}
-select.fb-input{cursor:pointer}
-.fb-submit{background:#1f2937;color:#f9fafb;border:none;border-radius:7px;padding:9px;font-size:12px;cursor:pointer;font-weight:600;transition:background .15s;margin-top:2px}
-.fb-submit:hover:not(:disabled){background:#374151}
-.fb-submit:disabled{opacity:.5;cursor:default}
-#fb-msg{font-size:11px;text-align:center;min-height:14px}
-#fb-msg.ok{color:#16a34a}#fb-msg.err{color:#dc2626}
-@media(max-width:640px){#fb-widget{bottom:14px;right:14px}#fb-panel{width:calc(100vw - 28px)}}
+/* ── GitHub Star 버튼 ── */
+#star-btn{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;align-items:center;gap:6px;padding:9px 16px;background:#1f2937;color:#fbbf24;text-decoration:none;font-family:system-ui,-apple-system,sans-serif;font-size:13px;font-weight:600;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);transition:background .15s,transform .15s;user-select:none}
+#star-btn:hover{background:#374151;transform:translateY(-2px)}
+#star-btn span:first-child{font-size:16px}
+@media(max-width:640px){#star-btn{bottom:14px;right:14px;padding:8px 13px;font-size:12px}}
 /* ── 글씨 크기 조절 ── */
 .fs-ctrl{display:flex;align-items:center;gap:3px;margin-left:auto;flex-shrink:0}
 .fs-btn{cursor:pointer;font-size:11px;font-weight:bold;color:#6e7681;padding:2px 7px;border:1px solid #30363d;border-radius:4px;user-select:none;transition:color .1s,background .1s;font-family:sans-serif}
@@ -3480,97 +3459,9 @@ apl([
 up();
 </script>
 
-<!-- ── 피드백 & Star 위젯 ── -->
-<div id="fb-widget">
-  <div id="fb-panel">
-    <div class="fb-hd">
-      <span>피드백 &amp; 지원</span>
-      <span class="fb-close" onclick="toggleFb()">✕</span>
-    </div>
-    <a class="fb-star" href="https://github.com/NewFeKim/sap-basis-lab" target="_blank" rel="noopener">
-      <span class="fb-star-ico">⭐</span>
-      <span class="fb-star-lbl">
-        <span>GitHub Star 남기기</span>
-        <span>도움이 됐다면 Star로 응원해주세요!</span>
-      </span>
-    </a>
-    <div id="fb-form-area">
-      <div class="fb-flabel">개선 제안 / 문의사항</div>
-      <select id="fb-type" class="fb-input">
-        <option value="개선제안">💡 개선 제안</option>
-        <option value="버그신고">🐛 버그 신고</option>
-        <option value="기타문의">💬 기타 문의</option>
-      </select>
-      <input id="fb-title" class="fb-input" type="text" placeholder="제목 (필수)" maxlength="100">
-      <textarea id="fb-body" class="fb-input" placeholder="내용을 입력해주세요..." maxlength="2000"></textarea>
-      <input id="fb-contact" class="fb-input" type="text" placeholder="연락처 (선택 — 답변 원하실 경우)" maxlength="100">
-      <button class="fb-submit" onclick="submitFb()">제출하기</button>
-      <div id="fb-msg"></div>
-    </div>
-  </div>
-  <button id="fb-toggle" onclick="toggleFb()" title="피드백 / Star">💬</button>
-</div>
-
-<script>
-/* ── 피드백 위젯 ──────────────────────────────────────────
-   Formspree 설정 방법:
-   1. https://formspree.io 무료 계정 생성
-   2. "+ New Form" → 이름 입력 → 이메일 주소 입력 → 엔드포인트 발급
-   3. 발급된 URL (예: https://formspree.io/f/xyzabcde) 을
-      아래 FORMSPREE_ENDPOINT 에 붙여넣기
-   미설정 시 GitHub Issues로 자동 대체됩니다.
-─────────────────────────────────────────────────────── */
-const FORMSPREE_ENDPOINT=''; // 예: 'https://formspree.io/f/xyzabcde'
-const GITHUB_REPO_URL='https://github.com/NewFeKim/sap-basis-lab';
-
-function toggleFb(){
-  const panel=document.getElementById('fb-panel');
-  panel.classList.toggle('open');
-  if(!panel.classList.contains('open'))document.getElementById('fb-msg').textContent='';
-}
-
-// 패널 외부 클릭 시 닫기
-document.addEventListener('click',e=>{
-  const w=document.getElementById('fb-widget');
-  if(!w.contains(e.target))document.getElementById('fb-panel').classList.remove('open');
-});
-
-async function submitFb(){
-  const type=document.getElementById('fb-type').value;
-  const title=document.getElementById('fb-title').value.trim();
-  const body=document.getElementById('fb-body').value.trim();
-  const contact=document.getElementById('fb-contact').value.trim();
-  const msg=document.getElementById('fb-msg');
-  const btn=document.querySelector('.fb-submit');
-
-  if(!title){msg.textContent='제목을 입력해주세요.';msg.className='err';return;}
-  if(!body){msg.textContent='내용을 입력해주세요.';msg.className='err';return;}
-
-  if(FORMSPREE_ENDPOINT){
-    // Formspree: 이메일로 전달 (이메일 비공개)
-    btn.disabled=true;msg.textContent='전송 중...';msg.className='';
-    try{
-      const res=await fetch(FORMSPREE_ENDPOINT,{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Accept':'application/json'},
-        body:JSON.stringify({구분:type,제목:title,내용:body,연락처:contact||'(미입력)'})
-      });
-      if(res.ok){
-        msg.textContent='✓ 제출됐습니다. 감사합니다!';msg.className='ok';
-        document.getElementById('fb-title').value='';
-        document.getElementById('fb-body').value='';
-        document.getElementById('fb-contact').value='';
-      }else throw new Error();
-    }catch{
-      msg.textContent='전송 실패. 잠시 후 다시 시도해주세요.';msg.className='err';
-    }finally{btn.disabled=false;}
-  }else{
-    // Formspree 미설정 → GitHub Issues 새 탭으로 대체
-    const issueBody=`## [${type}] ${title}\n\n${body}${contact?'\n\n**연락처:** '+contact:''}`;
-    const url=`${GITHUB_REPO_URL}/issues/new?title=${encodeURIComponent('['+type+'] '+title)}&body=${encodeURIComponent(issueBody)}&labels=feedback`;
-    window.open(url,'_blank','noopener');
-  }
-}
-</script>
+<!-- ── GitHub Star 버튼 ── -->
+<a id="star-btn" href="https://github.com/NewFeKim/sap-basis-lab" target="_blank" rel="noopener" title="GitHub에서 Star 남기기">
+  <span>⭐</span><span>Star</span>
+</a>
 </body>
 </html>
