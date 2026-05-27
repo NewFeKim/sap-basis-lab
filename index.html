@@ -709,10 +709,10 @@ function switchTab(tab){
 
   if(tab==='ap'){
     apl(['SUSE Linux Enterprise Server 15 SP4',`Kernel 5.14.21-150400.24.81-default (${AP_HOST})`,'Last login: Mon May 05 18:31:02 2026 from 10.10.1.10'],'mu');
-    apl(['','SAP BASIS TRAINING TERMINAL v3 — AP Server Simulator',`SID: S4H  |  Instance: D00  |  Host: ${AP_HOST}  |  User: ${apUser}`,'SAP System Status: '+(sapOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  Kernel 753','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
+    apl(['','SAP BASIS TRAINING TERMINAL v4 — AP Server Simulator',`SID: S4H  |  Instance: D00  |  Host: ${AP_HOST}  |  User: ${apUser}`,'SAP System Status: '+(sapOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  Kernel 753','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
   }else{
     apl(['SUSE Linux Enterprise Server 15 SP4',`Kernel 5.14.21-150400.24.81-default (${DB_HOST})`,'Last login: Mon May 05 18:35:10 2026 from 10.10.1.51'],'mu');
-    apl(['','SAP BASIS TRAINING TERMINAL v3 — DB Server Simulator',`SID: S4H  |  Instance: HDB00  |  Host: ${DB_HOST}  |  User: ${dbUser}`,'HANA Status: '+(dbOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  HANA 2.00.067','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
+    apl(['','SAP BASIS TRAINING TERMINAL v4 — DB Server Simulator',`SID: S4H  |  Instance: HDB00  |  Host: ${DB_HOST}  |  User: ${dbUser}`,'HANA Status: '+(dbOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  HANA 2.00.067','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
   }
 }
 
@@ -3407,7 +3407,7 @@ apl([
 ],'mu');
 apl([
   '',
-  'SAP BASIS TRAINING TERMINAL v3 — AP Server Simulator',
+  'SAP BASIS TRAINING TERMINAL v4 — AP Server Simulator',
   `SID: S4H  |  Instance: D00  |  Host: ${AP_HOST}  |  User: ${user}`,
   'SAP System Status: RUNNING  |  SLES 15 SP4  |  Kernel 753',
   '',
