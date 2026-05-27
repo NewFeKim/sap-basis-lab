@@ -2,12 +2,15 @@
 .DS_Store
 Thumbs.db
 
-# Editor
+# Editor / IDE
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 
 # Temp
 *.log
 *.tmp
+.tools/
+.ai-collab/CODEX_REVIEW_REPORT.md

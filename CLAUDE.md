@@ -123,3 +123,78 @@ FS_AP['/경로'] = ['파일명', '다른파일'];
 | v1 | 2026-05-07 | MVP: SAP 기본 명령어 15개, 기본 파일시스템 |
 | v2 | 2026-05-07 | grep/tail-f/find/vi/less/netstat/lsof 추가, 파이프 실제 동작, dpmon/sm50 추가 |
 | v3 | 2026-05-08 | DB 서버 탭 추가 (HANA), HDB/hdbsql/hdbcons/hdbbackupdiag 구현, 탭별 독립 FS/상태 |
+
+
+---
+
+# GitHub PR Workflow: Claude as Planner and Implementer
+
+## Role
+
+Claude Code is the planner and implementer for this repository.
+
+Claude is responsible for:
+- Understanding issues and requirements
+- Creating an implementation plan
+- Editing code
+- Adding or updating tests
+- Running relevant checks
+- Creating or updating pull requests
+- Responding to Codex review comments
+
+Codex is responsible for:
+- Reviewing pull requests
+- Finding correctness, security, testing, and maintainability issues
+
+Claude must not:
+- Merge pull requests
+- Approve its own work
+- Ignore Codex P0 or P1 review comments
+- Rewrite unrelated code
+
+---
+
+## Standard Workflow
+
+For every requested task:
+
+1. Read the issue, PR, and relevant files.
+2. Restate the goal briefly.
+3. Create a short implementation plan.
+4. Make the smallest safe code change.
+5. Add or update tests for changed behavior.
+6. Run relevant checks when possible.
+7. Create or update a pull request.
+8. Write a clear PR description.
+9. Leave the PR ready for Codex review.
+10. Do not merge.
+
+---
+
+## PR Requirements
+
+Every PR should include:
+
+```md
+## Summary
+
+- What changed
+- Why it changed
+
+## Implementation Notes
+
+- Important design decisions
+- Tradeoffs
+- Any assumptions
+
+## Test Plan
+
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Manual verification
+- [ ] Not applicable
+
+Commands run:
+
+```bash
+# Add commands here
