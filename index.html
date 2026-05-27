@@ -93,10 +93,13 @@ body{
   .tt{font-size:10px}
 }
 /* ── GitHub Star 버튼 ── */
-#star-btn{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;align-items:center;gap:6px;padding:9px 16px;background:#1f2937;color:#fbbf24;text-decoration:none;font-family:system-ui,-apple-system,sans-serif;font-size:13px;font-weight:600;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);transition:background .15s,transform .15s;user-select:none}
-#star-btn:hover{background:#374151;transform:translateY(-2px)}
-#star-btn span:first-child{font-size:16px}
-@media(max-width:640px){#star-btn{bottom:14px;right:14px;padding:8px 13px;font-size:12px}}
+#star-btn{position:fixed;top:18px;right:20px;z-index:500;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 18px;background:#1f2937;color:#fbbf24;text-decoration:none;font-family:system-ui,-apple-system,sans-serif;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.28);transition:background .15s,transform .15s,box-shadow .15s;user-select:none}
+#star-btn:hover{background:#374151;transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.35)}
+#star-btn:active{transform:translateY(0)}
+.star-ico{font-size:22px;line-height:1}
+.star-lbl{font-size:12px;font-weight:700;letter-spacing:.3px;color:#fbbf24}
+.star-sub{font-size:9px;color:#9ca3af;font-weight:400;white-space:nowrap}
+@media(max-width:640px){#star-btn{top:12px;right:12px;padding:8px 14px}.star-ico{font-size:18px}.star-lbl{font-size:11px}.star-sub{display:none}}
 /* ── 글씨 크기 조절 ── */
 .fs-ctrl{display:flex;align-items:center;gap:3px;margin-left:auto;flex-shrink:0}
 .fs-btn{cursor:pointer;font-size:11px;font-weight:bold;color:#6e7681;padding:2px 7px;border:1px solid #30363d;border-radius:4px;user-select:none;transition:color .1s,background .1s;font-family:sans-serif}
@@ -3461,7 +3464,9 @@ up();
 
 <!-- ── GitHub Star 버튼 ── -->
 <a id="star-btn" href="https://github.com/NewFeKim/sap-basis-lab" target="_blank" rel="noopener" title="GitHub에서 Star 남기기">
-  <span>⭐</span><span>Star</span>
+  <span class="star-ico">⭐</span>
+  <span class="star-lbl">Star</span>
+  <span class="star-sub">GitHub에서 눌러주세요</span>
 </a>
 </body>
 </html>
