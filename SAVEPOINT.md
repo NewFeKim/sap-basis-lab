@@ -10,9 +10,9 @@
 | 항목 | 값 |
 |---|---|
 | **앱 버전** | v0.100 |
-| **최신 커밋** | `dcc35e6` feat: v0.100 — 버전 관리 체계 도입 및 신규 명령어 9개 추가 |
+| **main 최신 커밋** | `900c6f6` docs: CLAUDE.md 구현 현황 정리 및 SAVEPOINT.md 세이브포인트 시스템 도입 |
+| **fix 브랜치** | `fix/accuracy-verification` (커밋 474ce52) |
 | **커밋 날짜** | 2026-06-03 |
-| **브랜치** | main |
 | **smoke test** | 34/34 통과 |
 
 ---
@@ -24,10 +24,20 @@
 3. **버전 관리 도입** — `APP_VERSION='v0.100'` 상수, 배너/타이틀 동적 표시
 4. **신규 명령어 9개 구현** — id, groups, nslookup, iostat, disp+work, dmesg, tp (세션 버퍼 유지), hdbnsutil
 5. **Codex 리뷰 통합** — `codex review --uncommitted` 워크플로우 확립, P1/P2 이슈 4개 수정
+6. **공개 문서 정확도 검증** — 서칭자 3개 병렬 → 7개 항목 수정 완료 (fix/accuracy-verification 브랜치)
+   - GetProcessList starttime 형식 수정
+   - GetSystemInstanceList features 컬럼 수정
+   - HDB version 필드 추가 (git merge time, weekstone)
+   - hdbnsutil -sr_state 대폭 개선 (6개 필드 추가, 소문자화)
+7. **NotebookLM 소스 목록 작성** — `docs/NOTEBOOKLM_SOURCES.md` (우선순위별 정리)
 
 ---
 
 ## 다음 우선순위 작업
+
+### 0순위 — fix/accuracy-verification 브랜치 처리
+- [ ] main으로 merge 또는 PR 생성 (사용자 확인 후)
+- [ ] NotebookLM에서 M_SYSTEM_OVERVIEW 뷰 존재 여부 확인 후 추가 수정 가능
 
 ### 1순위 — Phase 3 선행 개발
 `PHASE3_DEV_TODO.md` 참조
