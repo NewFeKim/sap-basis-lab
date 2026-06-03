@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAP Basis Training Terminal v4</title>
+<title>SAP Basis Training Terminal</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 
@@ -153,12 +153,12 @@ body{
 <body>
 <header class="page-hd">
   <span class="page-hd-title">SAP Basis Training Terminal</span>
-  <span class="page-hd-sub">신입 Basis 컨설턴트를 위한 OS단 실습 환경 · v4</span>
+  <span class="page-hd-sub" id="page-version">신입 Basis 컨설턴트를 위한 OS단 실습 환경</span>
 </header>
 <div id="tr">
   <div class="tb">
     <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
-    <span class="tt" id="tt-title">SAP Basis Training Terminal v4 — AP Server (SLES 15 SP4) — SID: S4H</span>
+    <span class="tt" id="tt-title">SAP Basis Training Terminal — AP Server (SLES 15 SP4) — SID: S4H</span>
     <div class="fs-ctrl">
       <span class="fs-btn fs-disabled" id="fs-dec" onclick="adjFs(-1)" title="글씨 작게">A−</span>
       <span id="fs-val">13px</span>
@@ -199,9 +199,13 @@ body{
     <span onclick="rc('vi /usr/sap/S4H/SYS/profile/DEFAULT.PFL')">vi profile</span>
     <span onclick="rc('R3trans -d')">R3trans -d</span>
     <span onclick="rc('env | grep SAP')">env|grep SAP</span>
-    <span onclick="rc('disp+work -V')">disp+work -V</span>
+    <span onclick="rc('disp+work -version')">disp+work -ver</span>
+    <span onclick="rc('iostat -x')">iostat -x</span>
+    <span onclick="rc('tp showbuffer S4H')">tp showbuffer</span>
+    <span onclick="rc('nslookup s4hdb01')">nslookup</span>
+    <span onclick="rc('id')">id</span>
+    <span onclick="rc('dmesg')">dmesg</span>
     <span onclick="rc('sappfpar check pf=/usr/sap/S4H/SYS/profile/S4H_D00_s4happ01')">sappfpar check</span>
-    <span onclick="rc('saposcol -s')">saposcol -s</span>
     <span onclick="rc('sapcontrol -nr 00 -function RestartService')">RestartService</span>
     <span onclick="rc('help')">help</span>
   </div>
@@ -227,6 +231,10 @@ body{
     <span onclick="rc('sapcontrol -nr 00 -function Stop')">sc Stop</span>
     <span onclick="rc('tail -f /usr/sap/S4H/HDB00/trace/nameserver_s4hdb01.30001.000.trc')">tail -f nameserver</span>
     <span onclick="rc('df -h')">df -h</span>
+    <span onclick="rc('hdbnsutil -sr_state')">sr_state</span>
+    <span onclick="rc('hdbnsutil -sr_stateConfiguration')">sr_stateConfig</span>
+    <span onclick="rc('iostat -x')">iostat -x</span>
+    <span onclick="rc('id')">id</span>
     <span onclick="rc('env | grep HDB')">env|grep HDB</span>
     <span onclick="rc('help')">help</span>
   </div>
@@ -265,6 +273,7 @@ body{
 /* ───────────────────────────────────────────
    상태 변수
 ─────────────────────────────────────────── */
+const APP_VERSION='v0.100';
 const SID='S4H', AP_HOST='s4happ01', DB_HOST='s4hdb01', NR='00';
 let activeTab='ap';
 let HOST=AP_HOST;
@@ -282,10 +291,14 @@ function adjFs(delta){
   document.getElementById('fs-inc').classList.toggle('fs-disabled',termFs>=FS_MAX);
   localStorage.setItem('termFs',termFs);
 }
-// 페이지 로드 시 저장된 크기 적용
+// 버전 표시 — 항상 실행 (initFs와 무관)
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('page-version').textContent=`신입 Basis 컨설턴트를 위한 OS단 실습 환경 · ${APP_VERSION}`;
+  document.title=`SAP Basis Training Terminal ${APP_VERSION}`;
+});
+// 페이지 로드 시 저장된 글씨 크기 적용
 (function initFs(){
   if(termFs===FS_MIN)return; // 기본값이면 스타일 변경 불필요
-  // DOM 준비 후 적용 (DOMContentLoaded 이후)
   document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('tr').style.fontSize=termFs+'px';
     document.getElementById('fs-val').textContent=termFs+'px';
@@ -742,8 +755,8 @@ function switchTab(tab){
   document.getElementById('hb-ap').style.display=tab==='ap'?'flex':'none';
   document.getElementById('hb-db').style.display=tab==='db'?'flex':'none';
   document.getElementById('tt-title').textContent=tab==='ap'
-    ?'SAP Basis Training Terminal v4 — AP Server (SLES 15 SP4) — SID: S4H'
-    :'SAP Basis Training Terminal v4 — DB Server (SLES 15 SP4) — SID: S4H / HANA 2.0';
+    ?`SAP Basis Training Terminal ${APP_VERSION} — AP Server (SLES 15 SP4) — SID: S4H`
+    :`SAP Basis Training Terminal ${APP_VERSION} — DB Server (SLES 15 SP4) — SID: S4H / HANA 2.0`;
 
   document.getElementById('output').innerHTML='';
   pagerQuit();
@@ -754,10 +767,10 @@ function switchTab(tab){
 
   if(tab==='ap'){
     apl(['SUSE Linux Enterprise Server 15 SP4',`Kernel 5.14.21-150400.24.81-default (${AP_HOST})`,'Last login: Mon May 05 18:31:02 2026 from 10.10.1.10'],'mu');
-    apl(['','SAP BASIS TRAINING TERMINAL v4 — AP Server Simulator',`SID: S4H  |  Instance: D00  |  Host: ${AP_HOST}  |  User: ${apUser}`,'SAP System Status: '+(sapOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  Kernel 753','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
+    apl(['',`SAP BASIS TRAINING TERMINAL ${APP_VERSION} — AP Server Simulator`,`SID: S4H  |  Instance: D00  |  Host: ${AP_HOST}  |  User: ${apUser}`,'SAP System Status: '+(sapOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  Kernel 793','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
   }else{
     apl(['SUSE Linux Enterprise Server 15 SP4',`Kernel 5.14.21-150400.24.81-default (${DB_HOST})`,'Last login: Mon May 05 18:35:10 2026 from 10.10.1.51'],'mu');
-    apl(['','SAP BASIS TRAINING TERMINAL v4 — DB Server Simulator',`SID: S4H  |  Instance: HDB00  |  Host: ${DB_HOST}  |  User: ${dbUser}`,'HANA Status: '+(dbOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  HANA 2.00.067','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
+    apl(['',`SAP BASIS TRAINING TERMINAL ${APP_VERSION} — DB Server Simulator`,`SID: S4H  |  Instance: HDB00  |  Host: ${DB_HOST}  |  User: ${dbUser}`,'HANA Status: '+(dbOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  HANA 2.00.067','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
   }
 }
 
@@ -2244,6 +2257,219 @@ const CMDS={
     ap('Overall result: OK — all backup checks passed.','su');
   },
 
+  /* ── id: 사용자 UID/GID 정보 ── */
+  id(args){
+    const target=args[0]||user;
+    const userMap={
+      's4hadm':   {uid:1001,gid:1000,groups:'1000(sapsys) 1001(s4hadm)'},
+      's4hdb01adm':{uid:1002,gid:1000,groups:'1000(sapsys) 1002(s4hdb01adm)'},
+      'root':     {uid:0,   gid:0,   groups:'0(root)'},
+      'sapadm':   {uid:1003,gid:1000,groups:'1000(sapsys) 1003(sapadm)'},
+    };
+    const u=userMap[target];
+    if(!u){ap(`id: '${target}': no such user`,'er');return;}
+    ap(`uid=${u.uid}(${target}) gid=${u.gid}(${target==='root'?'root':'sapsys'}) groups=${u.groups}`);
+  },
+
+  /* ── groups: 사용자 그룹 목록 ── */
+  groups(args){
+    const target=args[0]||user;
+    const groupMap={
+      's4hadm':    `${target} : sapsys s4hadm`,
+      's4hdb01adm':`${target} : sapsys s4hdb01adm`,
+      'root':      `${target} : root`,
+      'sapadm':    `${target} : sapsys sapadm`,
+    };
+    const g=groupMap[target];
+    if(!g){ap(`groups: '${target}': no such user`,'er');return;}
+    ap(g);
+  },
+
+  /* ── nslookup: DNS 조회 시뮬레이션 ── */
+  nslookup(args){
+    const host=args[0]||'';
+    if(!host){ap('Usage: nslookup <hostname>','wa');return;}
+    const dns={
+      's4happ01':'10.10.1.51','s4happ01.corp.com':'10.10.1.51',
+      's4hdb01': '10.10.1.52','s4hdb01.corp.com': '10.10.1.52',
+      's4happ02':'10.10.1.53','s4happ02.corp.com':'10.10.1.53',
+    };
+    ap('Server:   10.10.1.1');
+    ap('Address:  10.10.1.1#53');
+    ap('');
+    if(dns[host]){
+      ap('Non-authoritative answer:');
+      ap(`Name:   ${host.includes('.')?host:host+'.corp.com'}`);
+      ap(`Address: ${dns[host]}`);
+    }else{
+      ap(`** server can't find ${host}: NXDOMAIN`,'er');
+    }
+  },
+
+  /* ── iostat: 디스크 I/O 통계 ── */
+  iostat(args){
+    const xflag=args.includes('-x');
+    ap('Linux 5.14.21-150400.24.81-default ('+HOST+')   '+new Date().toLocaleDateString('ko-KR'));
+    ap('');
+    ap('avg-cpu:  %user   %nice %system %iowait  %steal   %idle');
+    ap('           2.34    0.00    1.12    0.45    0.00   96.09');
+    ap('');
+    if(xflag){
+      apl([
+        'Device            r/s     w/s   rkB/s   wkB/s  rrqm/s  wrqm/s  %util',
+        'sda              1.23    8.45    49.2   338.0    0.00    0.12    1.2',
+        'sdb             42.10  312.80 16840.0 125120.0   0.00    1.24   38.7',
+      ]);
+    }else{
+      apl([
+        'Device             tps    kB_read/s    kB_wrtn/s    kB_read    kB_wrtn',
+        'sda               9.68        49.2        338.0     403968    2772992',
+        'sdb             354.90     16840.0     125120.0  138117120 1026007040',
+      ]);
+    }
+  },
+
+  /* ── disp+work -version: SAP 커널 버전 확인 ── */
+  'disp+work'(args){
+    if(activeTab!=='ap'){ap('bash: disp+work: command not found','er');return;}
+    if(!args.includes('-version')&&!args.includes('--version')&&!args.includes('-V')){
+      ap('usage: disp+work -version | -V','wa');return;
+    }
+    apl([
+      'disp+work information',
+      `kernel release                793`,
+      `kernel make variant           793_REL`,
+      `ABAP Load Version             4`,
+      `compiled for                  OS/390 Kernel 5.14`,
+      `compilation mode              UNICODE`,
+      `compile time                  Jan 15 2024 03:22:41`,
+      `update level                  0`,
+      `patch number                  700`,
+      `source id                     0.793`,
+      `RKS compatibility level       0`,
+      `supported environment`,
+      `  database (SAP, table SVERS) 793`,
+      `  operating system            SUSE LINUX 15`,
+    ]);
+  },
+
+  /* ── dmesg: 커널 메시지 링 버퍼 ── */
+  dmesg(args){
+    apl([
+      '[    0.000000] Linux version 5.14.21-150400.24.81-default (geeko@buildhost)',
+      '[    0.000000] BIOS-provided physical RAM map:',
+      '[    1.234567] EXT4-fs (sda1): mounted filesystem with ordered data mode',
+      '[    2.345678] XFS (sdb1): Mounting V5 Filesystem',
+      '[    2.456789] XFS (sdb1): Ending clean mount',
+      '[   15.678901] sapstartsrv[1234]: SAP host agent started',
+      '[   18.901234] hdbdaemon['+( activeTab==='db'?34765:28472)+']: HANA daemon initialized',
+      '[  120.123456] NET: Registered PF_INET6 protocol family',
+      `[ ${Math.floor(Date.now()/1000-86400).toString().padStart(5,' ')}.000000] ${HOST} kernel: NFS: nfs4_reclaim_open_state: 0 recovery`,
+    ],'mu');
+  },
+
+  /* ── tp: 전송 관리 명령어 (세션 내 버퍼 상태 유지) ── */
+  tp(args){
+    if(activeTab!=='ap'){ap('bash: tp: command not found','er');return;}
+    const sub=args[0]||'';
+    if(!sub){
+      ap('usage: tp <command> [<transport>] [<SID>] [options]','wa');
+      ap('       commands: showbuffer, addtobuffer, import, importall, count, connect','wa');
+      return;
+    }
+    // 세션 내 버퍼 상태 (초기값: 3건)
+    if(!window._tpBuffer) window._tpBuffer=[
+      {num:'K900001.S4H',date:'2026/05/01',user:'s4hadm'},
+      {num:'K900002.S4H',date:'2026/05/06',user:'s4hadm'},
+      {num:'K900003.S4H',date:'2026/05/08',user:'s4hadm'},
+    ];
+    const buf=window._tpBuffer;
+    if(sub==='showbuffer'){
+      const sid=args[1]||SID;
+      ap(`This is tp version 380.04.79 (release 793 - unicode enabled)`);
+      ap(``);
+      ap(`Bufferfile for ${sid} at: /usr/sap/trans/buffer/${sid}`);
+      ap(``);
+      buf.forEach(e=>ap(`  SALM  ${e.num}   Import ${e.date} ${e.user}`));
+      ap(``);
+      ap(`${buf.length} entr${buf.length===1?'y':'ies'} in buffer for ${sid}`);
+    }else if(sub==='count'){
+      const sid=args[1]||SID;
+      ap(`${buf.length} request${buf.length===1?'':'s'} in buffer for ${sid}`);
+    }else if(sub==='connect'){
+      const sid=args[1]||SID;
+      ap(`This is tp version 380.04.79`);
+      ap(`tp connect ${sid} OK (R3trans return code: 0)`,'su');
+    }else if(sub==='addtobuffer'){
+      const trnum=args[1]||'';
+      const sid=args[2]||SID;
+      if(!trnum){ap('usage: tp addtobuffer <TRNUMBER> <SID>','wa');return;}
+      const today=new Date().toISOString().slice(0,10).replace(/-/g,'/');
+      buf.push({num:trnum,date:today,user});
+      ap(`This is tp version 380.04.79`);
+      ap(`tp addtobuffer ${trnum} ${sid}: ok`,'su');
+    }else if(sub==='importall'){
+      const sid=args[1]||SID;
+      ap(`This is tp version 380.04.79`);
+      ap(`Importing all requests for ${sid} ...`,'in');
+      buf.forEach(e=>ap(`  ${e.num}  return code: 0`,'su'));
+      const cnt=buf.length;
+      window._tpBuffer=[];
+      ap(`tp importall ${sid}: ${cnt} request${cnt===1?'':'s'} imported (rc=0)`,'su');
+    }else{
+      ap(`tp: command '${sub}' not supported in simulator`,'wa');
+    }
+  },
+
+  /* ── hdbnsutil: HANA 시스템 복제 상태 ── */
+  hdbnsutil(args){
+    if(activeTab!=='db'){ap('bash: hdbnsutil: command not found','er');return;}
+    const sub=args[0]||'';
+    if(sub==='-sr_state'||sub==='--sr_state'){
+      if(!dbOn){ap('hdbnsutil: HANA not running','er');return;}
+      apl([
+        'System Replication State',
+        '~~~~~~~~~~~~~~~~~~~~~~~~',
+        '',
+        'mode: PRIMARY',
+        'done',
+        '',
+        'Host Mappings:',
+        '--',
+        `${DB_HOST}  ->  ${DB_HOST}  [1] (mode: PRIMARY)`,
+        '',
+        'Site Mappings:',
+        '--',
+        '  site name: SITE_1 (primary)',
+        '  site name: SITE_2 (secondary, host: s4hdb02)',
+        '',
+        'Tier of s4hdb01: 1',
+        'Replication mode of s4hdb01: PRIMARY',
+        'Operation mode of s4hdb01: primary',
+        '',
+        'done.',
+      ]);
+    }else if(sub==='-sr_stateConfiguration'||sub==='--sr_stateConfiguration'){
+      if(!dbOn){ap('hdbnsutil: HANA not running','er');return;}
+      apl([
+        'System Replication Configuration State',
+        '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+        '',
+        'mode: primary',
+        'site id: 1',
+        'site name: SITE_1',
+        '',
+        `this host (${DB_HOST}) is primary`,
+        'secondary site is registered (mode: sync)',
+        '',
+        'done.',
+      ]);
+    }else{
+      ap(`hdbnsutil: unknown option '${sub}'`,'er');
+      ap('usage: hdbnsutil -sr_state | -sr_stateConfiguration','wa');
+    }
+  },
+
 };
 
 /* ═══════════════════════════════════════════
@@ -3454,7 +3680,7 @@ apl([
   '',
   'SAP BASIS TRAINING TERMINAL v4 — AP Server Simulator',
   `SID: S4H  |  Instance: D00  |  Host: ${AP_HOST}  |  User: ${user}`,
-  'SAP System Status: RUNNING  |  SLES 15 SP4  |  Kernel 753',
+  'SAP System Status: RUNNING  |  SLES 15 SP4  |  Kernel 793',
   '',
   `퀴즈: ${QUIZZES.length}개 시나리오 (우상단 📝 퀴즈 버튼)  |  'help' 로 명령어 목록`,
   '',
