@@ -53,10 +53,15 @@ body{
 .dot{width:12px;height:12px;border-radius:50%}
 .dr{background:#ff5f57}.dy{background:#ffbd2e}.dg{background:#28ca41}
 .tt{margin-left:8px;font-size:11px;color:#8b949e;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stabs{display:flex;background:#0d1117;border-bottom:1px solid #30363d;flex-shrink:0}
-.stab{padding:7px 20px;font-size:12px;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;user-select:none;transition:color .15s}
+.stabs{display:flex;align-items:center;background:#0d1117;border-bottom:1px solid #30363d;flex-shrink:0;gap:0}
+.stab{padding:7px 16px;font-size:12px;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;user-select:none;transition:color .15s}
 .stab.on{color:#58a6ff;border-bottom-color:#58a6ff}
+.stab.db-tab.on{color:#e3a04f;border-bottom-color:#e3a04f}
 .stab:hover:not(.on){color:#c9d1d9}
+/* ── 모드 토글 ── */
+.mode-wrap{display:flex;align-items:center;padding:0 12px;gap:4px;border-right:1px solid #30363d;flex-shrink:0}
+.mode-btn{padding:3px 10px;font-size:11px;cursor:pointer;border-radius:4px;color:#6e7681;border:1px solid #30363d;user-select:none;transition:all .15s}
+.mode-btn.on{background:#1f6feb22;color:#58a6ff;border-color:#58a6ff}
 
 /* ── 출력 영역 (flex로 남은 공간 전부 사용) ── */
 .out{overflow-y:auto;padding:14px 18px;line-height:1.7;flex:1;min-height:0}
@@ -167,8 +172,19 @@ body{
     <span class="qz-btn" onclick="QuizUI.openList()">📝 퀴즈</span>
   </div>
   <div class="stabs">
-    <div class="stab on" id="tab-ap" onclick="switchTab('ap')">AP Server (s4happ01)</div>
-    <div class="stab"    id="tab-db" onclick="switchTab('db')">DB Server (s4hdb01)</div>
+    <!-- 모드 토글 -->
+    <div class="mode-wrap">
+      <span class="mode-btn on" id="mode-single" onclick="setHaMode(false)">단일</span>
+      <span class="mode-btn"    id="mode-ha"     onclick="setHaMode(true)">이중화</span>
+    </div>
+    <!-- 단일 모드 탭 (기본 표시) -->
+    <div class="stab on"    id="tab-ap"  onclick="switchServer('ap1')">AP Server (s4happ01)</div>
+    <div class="stab db-tab" id="tab-db" onclick="switchServer('db1')">DB Server (s4hdb01)</div>
+    <!-- 이중화 모드 탭 (hidden) -->
+    <div class="stab"       id="tab-ap1" style="display:none" onclick="switchServer('ap1')">AP1 s4happ01</div>
+    <div class="stab"       id="tab-ap2" style="display:none" onclick="switchServer('ap2')">AP2 s4happ02</div>
+    <div class="stab db-tab" id="tab-db1" style="display:none" onclick="switchServer('db1')">DB1 s4hdb01</div>
+    <div class="stab db-tab" id="tab-db2" style="display:none" onclick="switchServer('db2')">DB2 s4hdb02</div>
   </div>
   <div class="out" id="output"></div>
   <div class="pg" id="pager">
@@ -238,6 +254,36 @@ body{
     <span onclick="rc('env | grep HDB')">env|grep HDB</span>
     <span onclick="rc('help')">help</span>
   </div>
+  <!-- AP2 힌트 버튼 (이중화 모드 전용) -->
+  <div class="hb" id="hb-ap2" style="display:none">
+    <span onclick="rc('startsap')">startsap</span>
+    <span onclick="rc('stopsap')">stopsap</span>
+    <span onclick="rc('sapcontrol -nr 01 -function GetProcessList')">GetProcessList</span>
+    <span onclick="rc('sapcontrol -nr 01 -function ABAPGetWPTable')">ABAPGetWPTable</span>
+    <span onclick="rc('dpmon')">dpmon</span>
+    <span onclick="rc('ps aux | grep dw')">ps|grep dw</span>
+    <span onclick="rc('tail -f /usr/sap/S4H/D01/work/dev_w0')">tail -f dev_w0</span>
+    <span onclick="rc('df -h')">df -h</span>
+    <span onclick="rc('free -m')">free -m</span>
+    <span onclick="rc('netstat -tlnp')">netstat</span>
+    <span onclick="rc('disp+work -version')">disp+work -ver</span>
+    <span onclick="rc('id')">id</span>
+    <span onclick="rc('help')">help</span>
+  </div>
+  <!-- DB2 힌트 버튼 (이중화 모드 전용) -->
+  <div class="hb" id="hb-db2" style="display:none">
+    <span onclick="rc('HDB info')">HDB info</span>
+    <span onclick="rc('HDB start')">HDB start</span>
+    <span onclick="rc('HDB stop')">HDB stop</span>
+    <span onclick="rc('HDB version')">HDB version</span>
+    <span onclick="rc('hdbnsutil -sr_state')">sr_state</span>
+    <span onclick="rc('hdbnsutil -sr_stateConfiguration')">sr_stateConfig</span>
+    <span onclick="rc('sapcontrol -nr 00 -function GetProcessList')">sc GetProcessList</span>
+    <span onclick="rc('df -h')">df -h</span>
+    <span onclick="rc('id')">id</span>
+    <span onclick="rc('env | grep HDB')">env|grep HDB</span>
+    <span onclick="rc('help')">help</span>
+  </div>
   <!-- 활성 퀴즈 패널 (힌트바 아래, 입력줄 위) -->
   <div id="qz-active">
     <div class="qz-info-bar">
@@ -275,7 +321,10 @@ body{
 ─────────────────────────────────────────── */
 const APP_VERSION='v0.100';
 const SID='S4H', AP_HOST='s4happ01', DB_HOST='s4hdb01', NR='00';
-let activeTab='ap';
+const AP2_HOST='s4happ02', DB2_HOST='s4hdb02';
+let activeTab='ap';     // 'ap'|'db' — 하위 호환 (퀴즈 시스템용)
+let activeServer='ap1'; // 'ap1'|'ap2'|'db1'|'db2' — 실제 활성 서버
+let haMode=false;       // false=단일, true=이중화
 let HOST=AP_HOST;
 
 /* ── 글씨 크기 조절 ── */
@@ -291,10 +340,12 @@ function adjFs(delta){
   document.getElementById('fs-inc').classList.toggle('fs-disabled',termFs>=FS_MAX);
   localStorage.setItem('termFs',termFs);
 }
-// 버전 표시 — 항상 실행 (initFs와 무관)
+// 버전 표시 및 haMode 복원 — 항상 실행
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('page-version').textContent=`신입 Basis 컨설턴트를 위한 OS단 실습 환경 · ${APP_VERSION}`;
   document.title=`SAP Basis Training Terminal ${APP_VERSION}`;
+  // 저장된 HA 모드 복원
+  if(localStorage.getItem('haMode')==='1')setHaMode(true);
 });
 // 페이지 로드 시 저장된 글씨 크기 적용
 (function initFs(){
@@ -307,10 +358,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 })();
 
-// AP 서버 상태
+// AP1 서버 상태 (기존 apCwd/apUser 대응)
 let apCwd='/usr/sap/S4H', apUser='s4hadm', sapOn=true;
-// DB 서버 상태
+let ap1On=true;   // AP1 독립 기동 상태
+// AP2 서버 상태 (이중화 전용)
+let ap2Cwd='/usr/sap/S4H', ap2User='s4hadm', ap2On=true;
+// DB1 서버 상태 (기존 dbCwd/dbUser 대응)
 let dbCwd='/usr/sap/S4H/HDB00', dbUser='s4hdb01adm', dbOn=true;
+let db1On=true;   // DB1 독립 기동 상태
+// DB2 서버 상태 (이중화 전용)
+let db2Cwd='/hana/shared/S4H', db2User='s4hdb02adm', db2On=true;
 
 // 현재 활성 상태 (탭 전환 시 교체)
 let cwd=apCwd, user=apUser;
@@ -731,46 +788,114 @@ function isFile(path){
 }
 
 /* ───────────────────────────────────────────
-   탭 전환
+   탭/서버 전환
 ─────────────────────────────────────────── */
-function switchTab(tab){
-  if(activeTab===tab)return;
 
-  // 현재 탭 상태 저장
-  if(activeTab==='ap'){apCwd=cwd;apUser=user;}
-  else{dbCwd=cwd;dbUser=user;}
+// 현재 서버 상태 저장
+function _saveServer(){
+  if(activeServer==='ap1'){apCwd=cwd;apUser=user;ap1On=sapOn;}
+  else if(activeServer==='ap2'){ap2Cwd=cwd;ap2User=user;ap2On=sapOn;}
+  else if(activeServer==='db1'){dbCwd=cwd;dbUser=user;db1On=dbOn;}
+  else if(activeServer==='db2'){db2Cwd=cwd;db2User=user;db2On=dbOn;}
+}
 
-  activeTab=tab;
+// 서버 전환 (단일/이중화 공통)
+function switchServer(server){
+  if(activeServer===server)return;
+  _saveServer();
+  activeServer=server;
+  activeTab=server.startsWith('ap')?'ap':'db';
 
-  // 대상 탭 상태 복원
-  if(tab==='ap'){
-    cwd=apCwd;user=apUser;HOST=AP_HOST;FS=FS_AP;FILES=FILES_AP;
-  }else{
-    cwd=dbCwd;user=dbUser;HOST=DB_HOST;FS=FS_DB;FILES=FILES_DB;
+  // 상태 복원
+  if(server==='ap1'){
+    cwd=apCwd;user=apUser;sapOn=ap1On;HOST=AP_HOST;FS=FS_AP;FILES=FILES_AP;
+    dbOn=db1On; // AP에서 DB 연결성은 Primary(DB1) 기준
+  }else if(server==='ap2'){
+    cwd=ap2Cwd;user=ap2User;sapOn=ap2On;HOST=AP2_HOST;FS=FS_AP;FILES=FILES_AP;
+    dbOn=db1On; // AP2도 Primary(DB1)에 접속
+  }else if(server==='db1'){
+    cwd=dbCwd;user=dbUser;dbOn=db1On;HOST=DB_HOST;FS=FS_DB;FILES=FILES_DB;
+  }else if(server==='db2'){
+    cwd=db2Cwd;user=db2User;dbOn=db2On;HOST=DB2_HOST;FS=FS_DB;FILES=FILES_DB;
   }
 
-  // UI 업데이트
-  document.getElementById('tab-ap').className='stab'+(tab==='ap'?' on':'');
-  document.getElementById('tab-db').className='stab'+(tab==='db'?' on':'');
-  document.getElementById('hb-ap').style.display=tab==='ap'?'flex':'none';
-  document.getElementById('hb-db').style.display=tab==='db'?'flex':'none';
-  document.getElementById('tt-title').textContent=tab==='ap'
-    ?`SAP Basis Training Terminal ${APP_VERSION} — AP Server (SLES 15 SP4) — SID: S4H`
-    :`SAP Basis Training Terminal ${APP_VERSION} — DB Server (SLES 15 SP4) — SID: S4H / HANA 2.0`;
-
+  _updateTabUI(server);
   document.getElementById('output').innerHTML='';
   pagerQuit();
   if(activeTailTid){clearInterval(activeTailTid);activeTailTid=null;}
   up();
-  // 퀴즈 탭 검증 (탭 전환 완료 후)
-  if(typeof QuizEngine!=='undefined')QuizEngine.onTab(tab);
+  if(typeof QuizEngine!=='undefined')QuizEngine.onTab(activeTab);
+  _showWelcome(server);
+}
 
-  if(tab==='ap'){
+// 하위 호환: 기존 switchTab('ap'|'db') 호출 대응
+function switchTab(tab){
+  if(tab==='ap')switchServer('ap1');
+  else switchServer('db1');
+}
+
+// 모드 토글: 단일 ↔ 이중화
+function setHaMode(enable){
+  haMode=enable;
+  localStorage.setItem('haMode', enable?'1':'0');
+  const single=['tab-ap','tab-db'];
+  const ha=['tab-ap1','tab-ap2','tab-db1','tab-db2'];
+  single.forEach(id=>document.getElementById(id).style.display=enable?'none':'');
+  ha.forEach(id=>document.getElementById(id).style.display=enable?'':'none');
+  document.getElementById('mode-single').classList.toggle('on',!enable);
+  document.getElementById('mode-ha').classList.toggle('on',enable);
+  // 항상 ap1로 리셋 + UI 강제 갱신 (같은 서버여도 모드 변경 반영)
+  activeServer=''; // force switchServer to not skip
+  switchServer('ap1');
+}
+
+// UI 탭 강조 업데이트
+function _updateTabUI(server){
+  const isAP=server.startsWith('ap');
+  const isDB=server.startsWith('db');
+  // 단일 모드 탭
+  document.getElementById('tab-ap').className='stab'+(server==='ap1'?' on':'');
+  document.getElementById('tab-db').className='stab db-tab'+(server==='db1'?' on':'');
+  // 이중화 모드 탭
+  ['ap1','ap2'].forEach(s=>{
+    const el=document.getElementById('tab-'+s);
+    el.className='stab'+(server===s?' on':'');
+  });
+  ['db1','db2'].forEach(s=>{
+    const el=document.getElementById('tab-'+s);
+    el.className='stab db-tab'+(server===s?' on':'');
+  });
+  // 힌트 버튼 전환
+  ['hb-ap','hb-ap2','hb-db','hb-db2'].forEach(id=>
+    document.getElementById(id).style.display='none');
+  if(server==='ap1')document.getElementById('hb-ap').style.display='flex';
+  else if(server==='ap2')document.getElementById('hb-ap2').style.display='flex';
+  else if(server==='db1')document.getElementById('hb-db').style.display='flex';
+  else if(server==='db2')document.getElementById('hb-db2').style.display='flex';
+  // 타이틀바
+  const titles={
+    ap1:`SAP Basis Training Terminal ${APP_VERSION} — AP1 s4happ01 (SLES 15 SP4) — SID: S4H`,
+    ap2:`SAP Basis Training Terminal ${APP_VERSION} — AP2 s4happ02 (SLES 15 SP4) — SID: S4H`,
+    db1:`SAP Basis Training Terminal ${APP_VERSION} — DB1 s4hdb01 (SLES 15 SP4) — SID: S4H / HANA 2.0`,
+    db2:`SAP Basis Training Terminal ${APP_VERSION} — DB2 s4hdb02 (SLES 15 SP4) — SID: S4H / HANA 2.0`,
+  };
+  document.getElementById('tt-title').textContent=titles[server]||titles.ap1;
+}
+
+// 서버별 웰컴 배너
+function _showWelcome(server){
+  if(server==='ap1'){
     apl(['SUSE Linux Enterprise Server 15 SP4',`Kernel 5.14.21-150400.24.81-default (${AP_HOST})`,'Last login: Mon May 05 18:31:02 2026 from 10.10.1.10'],'mu');
-    apl(['',`SAP BASIS TRAINING TERMINAL ${APP_VERSION} — AP Server Simulator`,`SID: S4H  |  Instance: D00  |  Host: ${AP_HOST}  |  User: ${apUser}`,'SAP System Status: '+(sapOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  Kernel 793','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
-  }else{
+    apl(['',`SAP BASIS TRAINING TERMINAL ${APP_VERSION} — AP1 Server Simulator`,`SID: S4H  |  Instance: D00  |  Host: ${AP_HOST}  |  User: ${apUser}`,'SAP System Status: '+(sapOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  Kernel 793','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
+  }else if(server==='ap2'){
+    apl(['SUSE Linux Enterprise Server 15 SP4',`Kernel 5.14.21-150400.24.81-default (${AP2_HOST})`,'Last login: Mon May 05 18:32:15 2026 from 10.10.1.10'],'mu');
+    apl(['',`SAP BASIS TRAINING TERMINAL ${APP_VERSION} — AP2 Server Simulator`,`SID: S4H  |  Instance: D01  |  Host: ${AP2_HOST}  |  User: ${ap2User}`,'SAP System Status: '+(sapOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  Kernel 793','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
+  }else if(server==='db1'){
     apl(['SUSE Linux Enterprise Server 15 SP4',`Kernel 5.14.21-150400.24.81-default (${DB_HOST})`,'Last login: Mon May 05 18:35:10 2026 from 10.10.1.51'],'mu');
-    apl(['',`SAP BASIS TRAINING TERMINAL ${APP_VERSION} — DB Server Simulator`,`SID: S4H  |  Instance: HDB00  |  Host: ${DB_HOST}  |  User: ${dbUser}`,'HANA Status: '+(dbOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  HANA 2.00.067','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
+    apl(['',`SAP BASIS TRAINING TERMINAL ${APP_VERSION} — DB1 Server Simulator`,`SID: S4H  |  Instance: HDB00  |  Host: ${DB_HOST}  |  User: ${dbUser}`,'HANA Status: '+(dbOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  HANA 2.00.067  |  Role: PRIMARY','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
+  }else if(server==='db2'){
+    apl(['SUSE Linux Enterprise Server 15 SP4',`Kernel 5.14.21-150400.24.81-default (${DB2_HOST})`,'Last login: Mon May 05 18:36:20 2026 from 10.10.1.51'],'mu');
+    apl(['',`SAP BASIS TRAINING TERMINAL ${APP_VERSION} — DB2 Server Simulator`,`SID: S4H  |  Instance: HDB00  |  Host: ${DB2_HOST}  |  User: ${db2User}`,'HANA Status: '+(dbOn?'RUNNING':'STOPPED')+'  |  SLES 15 SP4  |  HANA 2.00.067  |  Role: SECONDARY','','\'help\' 를 입력하면 명령어 목록을 볼 수 있습니다.',''],'in');
   }
 }
 
@@ -975,14 +1100,18 @@ const WP_DATA=[
 ];
 
 // AP 서버 공통 환경변수 (env 명령어 + sapcontrol GetEnvironment 공유)
-const getApEnv=()=>[
-  'SAPSYSTEMNAME=S4H','SAPSYSTEM=00',`SAPGLOBALHOST=${AP_HOST}`,
-  'DIR_LIBRARY=/usr/sap/S4H/D00/exe','DIR_CT_RUN=/usr/sap/S4H/D00/exe',
-  'DIR_EXECUTABLE=/usr/sap/S4H/D00/exe',`SAPLOCALHOSTFULL=${AP_HOST}.corp.com`,
-  'dbs_hdb_dbhost=s4hdb01.corp.com','dbs_hdb_dbname=S4H','dbs_hdb_schema=SAPABAP1',
-  'PATH=/usr/sap/S4H/D00/exe:/usr/local/bin:/usr/bin:/bin',
-  'SHELL=/bin/bash','LANG=en_US.UTF-8',
-];
+const getApEnv=()=>{
+  const inst=activeServer==='ap2'?'D01':'D00';
+  const nr=activeServer==='ap2'?'01':'00';
+  return[
+    'SAPSYSTEMNAME=S4H',`SAPSYSTEM=${nr}`,`SAPGLOBALHOST=${HOST}`,
+    `DIR_LIBRARY=/usr/sap/S4H/${inst}/exe`,`DIR_CT_RUN=/usr/sap/S4H/${inst}/exe`,
+    `DIR_EXECUTABLE=/usr/sap/S4H/${inst}/exe`,`SAPLOCALHOSTFULL=${HOST}.corp.com`,
+    'dbs_hdb_dbhost=s4hdb01.corp.com','dbs_hdb_dbname=S4H','dbs_hdb_schema=SAPABAP1',
+    `PATH=/usr/sap/S4H/${inst}/exe:/usr/local/bin:/usr/bin:/bin`,
+    'SHELL=/bin/bash','LANG=en_US.UTF-8',
+  ];
+};
 
 /* ───────────────────────────────────────────
    명령어 핸들러 테이블 (CMDS)
@@ -1506,6 +1635,7 @@ const CMDS={
   startsap(args){
     if(activeTab!=='ap'){ap('bash: startsap: command not found','er');return;}
     if(sapOn){ap('SAP system already started','wa');return;}
+    const _srv=activeServer; // 타이머 완료 전 탭 전환 방지용 캡처
     ap('NOTE: startsap is deprecated. Consider using: sapcontrol -nr 00 -function StartSystem','wa');
     ap('Starting SAP System S4H ...');
     ap('Checking smda97 ... not running','mu');
@@ -1530,6 +1660,7 @@ const CMDS={
           ap('  Work Processes .... ok','su');
           ap('SAP System S4H started.','su');
           sapOn=true;
+          if(_srv==='ap1')ap1On=true; else ap2On=true;
         },700);
       },600);
     },400);
@@ -1538,6 +1669,7 @@ const CMDS={
   stopsap(){
     if(activeTab!=='ap'){ap('bash: stopsap: command not found','er');return;}
     if(!sapOn){ap('SAP system already stopped','wa');return;}
+    const _srv=activeServer; // 타이머 완료 전 탭 전환 방지용 캡처
     ap('NOTE: stopsap is deprecated. Consider using: sapcontrol -nr 00 -function StopSystem','wa');
     ap('Stopping SAP System S4H ...');
     setTimeout(()=>{
@@ -1548,6 +1680,7 @@ const CMDS={
         ap('  Stopping ASCS01         .... stopped','wa');
         ap('SAP System S4H stopped.','su');
         sapOn=false;
+        if(_srv==='ap1')ap1On=false; else ap2On=false;
       },600);
     },500);
   },
@@ -1566,6 +1699,7 @@ const CMDS={
       if(func==='Start'||func==='StartSystem'){
         echo();
         if(dbOn){ap('OK','su');ap('Instance is already running','wa');return;}
+        const _srv=activeServer;
         ap('OK','su');
         ap('Starting SAP HANA instance HDB00 ...','in');
         setTimeout(()=>{
@@ -1576,6 +1710,7 @@ const CMDS={
             ap('  hdbwebdispatcher  .... started','su');
             ap('SAP HANA HDB00 started successfully.','su');
             dbOn=true;
+            if(_srv==='db1')db1On=true; else db2On=true;
           },700);
         },400);
         return;
@@ -1583,6 +1718,7 @@ const CMDS={
       if(func==='Stop'||func==='StopSystem'||func==='StopWait'){
         echo();
         if(!dbOn){ap('OK','su');ap('Instance is already stopped','wa');return;}
+        const _srv=activeServer;
         ap('OK','su');
         ap('Stopping SAP HANA instance HDB00 ...','in');
         setTimeout(()=>{
@@ -1592,6 +1728,7 @@ const CMDS={
           ap('  hdbdaemon         .... stopped','wa');
           ap('SAP HANA HDB00 stopped.','su');
           dbOn=false;
+          if(_srv==='db1')db1On=false; else db2On=false;
         },800);
         return;
       }
@@ -1612,12 +1749,17 @@ const CMDS={
           'hdbwebdispatcher,    HDB Web Dispatcher,   GREEN,      Running,    2026 04 23 06:20:11,  338:22:06,   34892',
         ],'su');
       }else if(func==='GetSystemInstanceList'){
-        apl(['OK',
-          'hostname, instanceNr, httpPort, httpsPort, startPriority, features,               dispstatus',
-          `s4happ01, 01,         50113,    50114,     2,             MESSAGESERVER|ENQUE,     ${sapOn?'GREEN':'GRAY'}`,
-          `s4happ01, 00,         50013,    50014,     3,             ABAP|GATEWAY|ICMAN|IGS,  ${sapOn?'GREEN':'GRAY'}`,
-          `s4hdb01,  00,         50013,    50014,     1,             HDB|HDB_WORKER,          ${dbOn?'GREEN':'GRAY'}`,
-        ],dbOn?'su':'wa');
+        const rows=[
+          'hostname,  instanceNr, httpPort, httpsPort, startPriority, features,               dispstatus',
+          `s4happ01,  01,         50113,    50114,     2,             MESSAGESERVER|ENQUE,     ${ap1On?'GREEN':'GRAY'}`,
+          `s4happ01,  00,         50013,    50014,     3,             ABAP|GATEWAY|ICMAN|IGS,  ${ap1On?'GREEN':'GRAY'}`,
+          `s4hdb01,   00,         50013,    50014,     1,             HDB|HDB_WORKER|PRIMARY,  ${db1On?'GREEN':'GRAY'}`,
+        ];
+        if(haMode)rows.push(
+          `s4happ02,  01,         50113,    50114,     3,             ABAP|GATEWAY|ICMAN|IGS,  ${ap2On?'GREEN':'GRAY'}`,
+          `s4hdb02,   00,         50013,    50014,     1,             HDB|HDB_WORKER|SECONDARY,${db2On?'GREEN':'GRAY'}`,
+        );
+        apl(['OK',...rows],dbOn?'su':'wa');
       }else if(func==='GetAlertTree'){
         apl(['OK',
           'NameServerMemory,   ,  , 72,  %',
@@ -1663,6 +1805,7 @@ const CMDS={
           ap('  Work Processes .... started','su');
           ap('SAP instance D00 started.','su');
           sapOn=true;
+          if(activeServer==='ap1')ap1On=true; else ap2On=true;
         },700);
       },500);
       return;
@@ -1677,6 +1820,7 @@ const CMDS={
         ap('  Dispatcher     .... stopped','wa');
         ap('SAP instance D00 stopped.','su');
         sapOn=false;
+        if(activeServer==='ap1')ap1On=false; else ap2On=false;
       },600);
       return;
     }
@@ -1704,12 +1848,17 @@ const CMDS={
       ],dbOn?'':'wa');
       if(!dbOn)ap('(WP가 DB 접속 대기 중 — DB 서버를 기동하십시오)','er');
     }else if(func==='GetSystemInstanceList'){
-      apl(['OK',
-        'hostname, instanceNr, httpPort, httpsPort, startPriority, features,               dispstatus',
-        `s4happ01, 01,         50113,    50114,     2,             MESSAGESERVER|ENQUE,     ${sapOn?'GREEN':'GRAY'}`,
-        `s4happ01, 00,         50013,    50014,     3,             ABAP|GATEWAY|ICMAN|IGS,  ${sapOn?'GREEN':'GRAY'}`,
-        `s4hdb01,  00,         50013,    50014,     1,             HDB|HDB_WORKER,          ${dbOn?'GREEN':'GRAY'}`,
-      ],sapOn?'su':'wa');
+      const rows=[
+        'hostname,  instanceNr, httpPort, httpsPort, startPriority, features,               dispstatus',
+        `s4happ01,  01,         50113,    50114,     2,             MESSAGESERVER|ENQUE,     ${ap1On?'GREEN':'GRAY'}`,
+        `s4happ01,  00,         50013,    50014,     3,             ABAP|GATEWAY|ICMAN|IGS,  ${ap1On?'GREEN':'GRAY'}`,
+        `s4hdb01,   00,         50013,    50014,     1,             HDB|HDB_WORKER|PRIMARY,  ${db1On?'GREEN':'GRAY'}`,
+      ];
+      if(haMode)rows.push(
+        `s4happ02,  01,         50113,    50114,     3,             ABAP|GATEWAY|ICMAN|IGS,  ${ap2On?'GREEN':'GRAY'}`,
+        `s4hdb02,   00,         50013,    50014,     1,             HDB|HDB_WORKER|SECONDARY,${db2On?'GREEN':'GRAY'}`,
+      );
+      apl(['OK',...rows],sapOn?'su':'wa');
     }else if(func==='GetAlertTree'){
       apl(['OK',
         'ActualResponsetime,  ,  , 42, ms',
@@ -1757,7 +1906,7 @@ const CMDS={
     if(activeTab!=='ap'){ap('bash: dpmon: command not found','er');return;}
     if(!sapOn){ap('DPMON: cannot connect to dispatcher','er');return;}
     apl([
-      'DPMON — SID: S4H  Instance: D00  Host: s4happ01',
+      `DPMON — SID: S4H  Instance: ${activeServer==='ap2'?'D01':'D00'}  Host: ${HOST}`,
       '────────────────────────────────────────────────────────────────',
       ' No Ty   Pid   Status Start Err Sem  CPU   Time Program       Cl  User',
       ...WP_DATA.map(r=>`${r.no.padStart(3)} ${r.ty.padEnd(4)} ${r.pid}  ${r.st.padEnd(6)} 2:07    0   0 ${r.cpu}  ${r.time} ${r.prg.padEnd(13)} ${r.cl}${r.usr?' '+r.usr:''}`),
@@ -1889,6 +2038,7 @@ const CMDS={
     const sub=args[0]||'';
     if(sub==='start'){
       if(dbOn){ap('HANA system already started','wa');return;}
+      const _srv=activeServer; // race condition 방지
       ap(`Starting SAP HANA Database version 2.00.067 ...`);
       setTimeout(()=>{
         ap('  hdbdaemon         .... started (PID 34765)','su');
@@ -1901,11 +2051,13 @@ const CMDS={
             ap('  hdbwebdispatcher  .... started (PID 34892)','su');
             ap('SAP HANA Database S4H started.','su');
             dbOn=true;
+            if(_srv==='db1')db1On=true; else db2On=true;
           },700);
         },500);
       },400);
     }else if(sub==='stop'){
       if(!dbOn){ap('HANA system already stopped','wa');return;}
+      const _srv=activeServer; // race condition 방지
       ap('Stopping SAP HANA Database ...');
       setTimeout(()=>{
         ap('  hdbwebdispatcher  .... stopped','wa');
@@ -1917,6 +2069,7 @@ const CMDS={
           ap('  hdbdaemon         .... stopped','wa');
           ap('SAP HANA Database S4H stopped.','su');
           dbOn=false;
+          if(_srv==='db1')db1On=false; else db2On=false;
         },600);
       },500);
     }else if(sub==='info'){
@@ -2423,48 +2576,93 @@ const CMDS={
     }
   },
 
-  /* ── hdbnsutil: HANA 시스템 복제 상태 ── */
+  /* ── hdbnsutil: HANA 시스템 복제 상태 (DB1=PRIMARY, DB2=SECONDARY) ── */
   hdbnsutil(args){
     if(activeTab!=='db'){ap('bash: hdbnsutil: command not found','er');return;}
     const sub=args[0]||'';
+    const isPrimary=activeServer!=='db2';
     if(sub==='-sr_state'||sub==='--sr_state'){
       if(!dbOn){ap('hdbnsutil: HANA not running','er');return;}
-      apl([
-        'System Replication State',
-        '~~~~~~~~~~~~~~~~~~~~~~~~',
-        '',
-        'mode: primary',
-        'site id: 1',
-        'site name: SITE_1',
-        'active primary site: 1',
-        'primary fully connected: true',
-        'full sync: false',
-        `primary time stamp: 2026 04 23 06:20:01`,
-        `Replication mode of ${DB_HOST}: PRIMARY`,
-        `Operation mode of ${DB_HOST}: primary`,
-        '',
-        'Host Mappings:',
-        '~~~~~~~~~~~~~~',
-        '',
-        `${DB_HOST} -> SITE_1 (${DB_HOST})`,
-        '',
-        'done.',
-      ]);
+      if(isPrimary){
+        apl([
+          'System Replication State',
+          '~~~~~~~~~~~~~~~~~~~~~~~~',
+          '',
+          'mode: primary',
+          'site id: 1',
+          'site name: SITE_1',
+          'active primary site: 1',
+          'primary fully connected: true',
+          'full sync: false',
+          'primary time stamp: 2026 04 23 06:20:01',
+          `Replication mode of ${HOST}: PRIMARY`,
+          `Operation mode of ${HOST}: primary`,
+          '',
+          'Host Mappings:',
+          '~~~~~~~~~~~~~~',
+          '',
+          `${HOST} -> SITE_1 (${HOST})`,
+          `${DB2_HOST} -> SITE_2 (${DB2_HOST})`,
+          '',
+          'done.',
+        ]);
+      }else{
+        apl([
+          'System Replication State',
+          '~~~~~~~~~~~~~~~~~~~~~~~~',
+          '',
+          'mode: sync',
+          'site id: 2',
+          'site name: SITE_2',
+          'active primary site: 1',
+          'primary fully connected: true',
+          'full sync: false',
+          'operation mode: logreplay',
+          `Replication mode of ${HOST}: SYNC`,
+          `Operation mode of ${HOST}: secondary`,
+          'secondary fully connected: true',
+          '',
+          'Host Mappings:',
+          '~~~~~~~~~~~~~~',
+          '',
+          `${HOST} -> SITE_2 (${HOST})`,
+          `${DB_HOST} -> SITE_1 (${DB_HOST})`,
+          '',
+          'done.',
+        ],'in');
+      }
     }else if(sub==='-sr_stateConfiguration'||sub==='--sr_stateConfiguration'){
       if(!dbOn){ap('hdbnsutil: HANA not running','er');return;}
-      apl([
-        'System Replication Configuration State',
-        '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
-        '',
-        'mode: primary',
-        'site id: 1',
-        'site name: SITE_1',
-        '',
-        `this host (${DB_HOST}) is primary`,
-        'secondary site is registered (mode: sync)',
-        '',
-        'done.',
-      ]);
+      if(isPrimary){
+        apl([
+          'System Replication Configuration State',
+          '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+          '',
+          'mode: primary',
+          'site id: 1',
+          'site name: SITE_1',
+          '',
+          `this host (${HOST}) is primary`,
+          'secondary site is registered (mode: sync)',
+          '',
+          'done.',
+        ]);
+      }else{
+        apl([
+          'System Replication Configuration State',
+          '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+          '',
+          'mode: sync',
+          'site id: 2',
+          'site name: SITE_2',
+          '',
+          `this host (${HOST}) is secondary`,
+          `primary site: SITE_1 (${DB_HOST})`,
+          'operation mode: logreplay',
+          '',
+          'done.',
+        ],'in');
+      }
     }else{
       ap(`hdbnsutil: unknown option '${sub}'`,'er');
       ap('usage: hdbnsutil -sr_state | -sr_stateConfiguration','wa');
@@ -2521,10 +2719,16 @@ const QuizEngine={
     this.hintShown=false;
     this.active=true;
 
-    // initialState 적용
+    // initialState 적용 (서버별 플래그에도 동기화)
     if(q.initialState){
-      if(q.initialState.sapOn!==undefined)sapOn=q.initialState.sapOn;
-      if(q.initialState.dbOn!==undefined)dbOn=q.initialState.dbOn;
+      if(q.initialState.sapOn!==undefined){
+        sapOn=q.initialState.sapOn;
+        if(activeServer==='ap1')ap1On=sapOn; else ap2On=sapOn;
+      }
+      if(q.initialState.dbOn!==undefined){
+        dbOn=q.initialState.dbOn;
+        db1On=dbOn; // 퀴즈는 단일 모드 기준 → DB1에 반영
+      }
       if(q.initialState.diskFull!==undefined)diskFullSim=q.initialState.diskFull;
       if(q.initialState.memLow!==undefined)memLowSim=q.initialState.memLow;
     }
