@@ -10,43 +10,49 @@
 | 항목 | 값 |
 |---|---|
 | **앱 버전** | v0.100 |
-| **main 최신 커밋** | `900c6f6` docs: CLAUDE.md 구현 현황 정리 및 SAVEPOINT.md 세이브포인트 시스템 도입 |
-| **fix 브랜치** | `fix/accuracy-verification` (커밋 474ce52) |
+| **main 최신 커밋** | `79e9d4c` Merge branch 'feat/ha-dual-server': AP/DB 이중화(HA) 구조 도입 |
 | **커밋 날짜** | 2026-06-03 |
-| **smoke test** | 34/34 통과 |
+| **smoke test** | 34/34 통과 (단일 모드) + 이중화 UI/퀴즈 호환성 검증 완료 |
 
 ---
 
 ## 마지막 세션에서 한 일
 
-1. **CLAUDE.md 전면 개정** — SAP Basis OS 업무 10개 카테고리, S/4HANA 2023 Kernel 793 버전 기준, Agent 역할 구분(팀장/서칭자/기획자/개발자), NotebookLM 워크플로우
-2. **Agent 구조 확립** — `.claude/agents/searcher.md`, `planner.md`, `developer.md` 역할 정의 파일 생성 및 git 추적
-3. **버전 관리 도입** — `APP_VERSION='v0.100'` 상수, 배너/타이틀 동적 표시
-4. **신규 명령어 9개 구현** — id, groups, nslookup, iostat, disp+work, dmesg, tp (세션 버퍼 유지), hdbnsutil
-5. **Codex 리뷰 통합** — `codex review --uncommitted` 워크플로우 확립, P1/P2 이슈 4개 수정
-6. **공개 문서 정확도 검증** — 서칭자 3개 병렬 → 7개 항목 수정 완료 (fix/accuracy-verification 브랜치)
-   - GetProcessList starttime 형식 수정
-   - GetSystemInstanceList features 컬럼 수정
-   - HDB version 필드 추가 (git merge time, weekstone)
-   - hdbnsutil -sr_state 대폭 개선 (6개 필드 추가, 소문자화)
-7. **NotebookLM 소스 목록 작성** — `docs/NOTEBOOKLM_SOURCES.md` (우선순위별 정리)
+1. **AP/DB 이중화(HA) 구조 도입** — `feat/ha-dual-server` 브랜치 → main 머지 완료
+   - 단일/이중화 모드 토글 `[단일|이중화]`
+   - 이중화 모드: AP1(s4happ01/D00), AP2(s4happ02/D01), DB1(s4hdb01/Primary), DB2(s4hdb02/Secondary) 4탭
+   - `activeServer` 상태변수 + 서버별 독립 플래그 (ap1On/ap2On/db1On/db2On)
+   - DB2 hdbnsutil: mode:sync / SECONDARY / Host Mappings 분리 출력
+   - GetSystemInstanceList: 이중화 모드 시 5행(AP2+DB2 추가)
+   - 타이머 race condition 수정 (`const _srv=activeServer` 캡처)
+   - Codex P1/P2 5건 수정 후 커밋
+2. **퀴즈 HA 호환성 검증** — Puppeteer 자동화 테스트
+   - 77개 시나리오 단일/이중화 모두 정상 로드
+   - tab 검증: DB1·DB2 모두 `activeTab='db'` → 기존 퀴즈 통과
+   - initialState 상태 반영 정상 (SAP STOPPED 표시 확인)
+3. **버그 수정** — 초기 환영 메시지 `v4` 하드코딩 → `APP_VERSION` 변수화 (Codex 리뷰 통과)
 
 ---
 
 ## 다음 우선순위 작업
 
-### 0순위 — fix/accuracy-verification 브랜치 처리
-- [ ] main으로 merge 또는 PR 생성 (사용자 확인 후)
-- [ ] NotebookLM에서 M_SYSTEM_OVERVIEW 뷰 존재 여부 확인 후 추가 수정 가능
-
 ### 1순위 — Phase 3 선행 개발
 `PHASE3_DEV_TODO.md` 참조
 
 - [ ] `diskFullSim` / `memLowSim` 시뮬레이션 토글 (`df`/`free`/`top` 출력 변경)
-- [ ] QuizEngine 코어 (검증 3타입: cmd/tab/state)
-- [ ] QuizUI (퀴즈 리스트/진행 패널/완료 화면)
-- [ ] QuizStorage (localStorage)
-- [ ] QUIZZES 데이터 77개 (카테고리 A~P)
+- [x] QuizEngine 코어 — 구현 완료 (cmd/tab/state 검증)
+- [x] QuizUI — 구현 완료 (퀴즈 리스트/진행 패널/완료 화면)
+- [x] QuizStorage (localStorage) — 구현 완료
+- [x] QUIZZES 데이터 77개 (카테고리 A~P) — 구현 완료
+
+### 1-2순위 — Phase 4 HA 전용 퀴즈 (신규)
+`docs/scenarios/PLAN_HA_DUAL_SERVER.md` 참조
+
+- [ ] HA001: HANA SR 상태 확인 (DB1 sr_state SYNC 확인)
+- [ ] HA002: Secondary 상태 점검 (DB2 sr_state SECONDARY)
+- [ ] HA003: DB Failover 시뮬레이션 (DB1 stop → DB2 takeover)
+- [ ] HA004: AP2 서버 기동 확인
+- [ ] HA005: 전체 HA 점검 루틴
 
 ### 2순위 — OS 명령어 보완
 - [ ] `telnet <host> <port>` 포트 연결성 확인
@@ -102,7 +108,8 @@ sap-bc-terminal/
 | v2 | 2026-05-07 | grep/tail -f/find/vi/less/netstat/lsof, 파이프 실제 동작 |
 | v3 | 2026-05-08 | DB 서버 탭 (HANA), HDB/hdbsql/hdbcons/hdbbackupdiag |
 | v0.100 | 2026-06-03 | 버전 관리 도입, 신규 명령어 9개, Agent 구조, Codex 통합 |
+| v0.100 | 2026-06-03 | HA 이중화 구조 (AP1/AP2/DB1/DB2), 퀴즈 77개, 정확도 검증 |
 
 ---
 
-*갱신: 2026-06-03 / 커밋: dcc35e6*
+*갱신: 2026-06-03 / 커밋: 79e9d4c*
