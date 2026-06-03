@@ -44,34 +44,64 @@ SAP Basis 신입 컨설턴트를 위한 **웹 기반 OS단 교육용 터미널 �
 
 ---
 
-## 현재 버전: v3 / Phase 2 완료
+## 현재 버전: v0.100
 
-### 구현 완료
-- AP 서버(s4happ01) 터미널 시뮬레이터
-- DB 서버(s4hdb01) 터미널 시뮬레이터 — 탭으로 전환
-- SAP 명령어: startsap, stopsap, sapcontrol, dpmon, sm50, R3trans, lgtst
-- HANA 명령어: HDB start/stop/info/version, hdbsql, hdbcons, hdbbackupdiag
-- Linux 명령어: ls/cd/cat/vi/less/tail -f/grep/find/wc/chmod/chown/ps/df/free/top/netstat/lsof 등
-- 파이프(|) 실제 필터링 동작, 리다이렉션(>/>>), 페이저(less/more)
-- 탭별 독립 파일시스템(FS_AP/FS_DB), 파일 내용(FILES_AP/FILES_DB)
-- 탭별 독립 상태(cwd, user, sapOn/dbOn, 환경변수, ps/df/netstat 출력)
-- sapOn/dbOn 상태변수로 기동/정지 연동
+> **세이브포인트 → `SAVEPOINT.md` 참조** (세션 재개 시 이 파일부터 읽을 것)
 
-### 미구현 (우선순위 순)
+### 구현 완료 (v0.100 기준)
+
+**기반 인프라**
+- AP 서버(s4happ01) + DB 서버(s4hdb01) 탭 전환 시뮬레이터
+- 탭별 독립 파일시스템(FS_AP/FS_DB), 파일 내용(FILES_AP/FILES_DB), 상태 변수
+- 파이프(|) 실제 필터링, 리다이렉션(>/>>), 페이저(less/more)
+- sapOn/dbOn 상태변수 기동/정지 연동
+- APP_VERSION 상수 기반 버전 표시 (v0.100)
+
+**SAP 명령어**
+startsap, stopsap, sapcontrol (GetProcessList/GetSystemInstanceList/GetAlertTree/ParameterValue/Start/Stop/StopWait/ABAPGetWPTable 등), dpmon, sm50, R3trans, lgtst, disp+work -version/-V, tp (showbuffer/addtobuffer/importall/count/connect, 세션 내 버퍼 유지)
+
+**HANA 명령어**
+HDB start/stop/info/version, hdbsql (M_SERVICES/M_DATABASES/M_DISK_USAGE/M_BACKUP_CATALOG/M_CONNECTIONS/M_SYSTEM_OVERVIEW/M_VOLUME_SIZES/M_LICENSE), hdbcons, hdbbackupdiag, hdbnsutil (-sr_state/-sr_stateConfiguration)
+
+**Linux 명령어**
+ls, cd, cat, vi/vim, less/more, head, tail/-f, grep, find (-name/-type/-size/-mtime), wc, sort, uniq, chmod, chown, ps, df, free, top, vmstat, iostat (-x), netstat/ss, lsof, uname, su/exit, env, pwd, whoami, hostname, date, uptime, history, clear, ping, du (-sh/--max-depth), systemctl status, id, groups, nslookup, dmesg
+
+### 미구현 (다음 작업 대상)
 
 **Phase 3 선행 개발 (PHASE3_DEV_TODO.md 참조):**
-- 디스크 풀/메모리 부족 시뮬레이션 토글 (`diskFullSim`, `memLowSim` 상태 변수)
-- 퀴즈 시스템 (QuizEngine / QuizUI / QuizStorage / QUIZZES 77개)
-- ※ `ping`, `du`, `systemctl`, `find -size/-mtime` 는 v4에서 이미 구현 완료
+- `diskFullSim`, `memLowSim` 시뮬레이션 토글 (df/free/top 출력 변경)
+- 퀴즈 시스템: QuizEngine / QuizUI / QuizStorage / QUIZZES 77개
 
-**추가 구현 대상 (리서치 기반 도출):**
-- `tp showbuffer`, `tp addtobuffer` (전송 관리)
-- `hdbnsutil -sr_state`, `hdbnsutil -sr_stateConfiguration` (HANA 시스템 복제)
-- `iostat -x`, `nslookup`, `telnet`, `id`, `groups` (OS 진단)
-- `disp+work -version` (SAP 커널 버전 확인)
-- `dmesg`, `journalctl` (시스템 로그)
-- `/usr/sap/trans/buffer/`, `/usr/sap/trans/EPS/`, `/etc/resolv.conf` (파일시스템 확장)
-- HANA trace 파일 (`alert_*.trc`, `nameserver_*.trc`, `indexserver_*.trc`)
+**OS 명령어 추가 구현:**
+- `telnet <host> <port>` (포트 연결성 확인)
+- `journalctl -e`, `journalctl -u <service>` (systemd 로그)
+- `/etc/resolv.conf` 파일 내용, `/usr/sap/trans/EPS/` 디렉토리
+
+**HANA 파일시스템 확장:**
+- `alert_*.trc`, `nameserver_*.trc`, `indexserver_*.trc` 파일 내용 (현재 경로만 있고 내용 없음)
+
+---
+
+## 세이브포인트 시스템
+
+### 개념
+`SAVEPOINT.md` 파일이 현재 개발 상태의 스냅샷이다.
+**새 세션 시작 시 팀장이 가장 먼저 읽어야 할 파일.**
+
+### 세이브포인트 갱신 규칙
+커밋 또는 주요 작업 완료 시 팀장이 `SAVEPOINT.md`를 업데이트한다:
+
+```
+갱신 타이밍
+  - 커밋 직후
+  - 장시간 작업 세션 종료 전
+  - 사용자가 명시적으로 저장 요청 시
+```
+
+### 세이브포인트 파일 위치
+```
+SAVEPOINT.md   ← 프로젝트 루트 (git 추적)
+```
 
 ---
 
