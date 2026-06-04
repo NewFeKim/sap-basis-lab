@@ -824,7 +824,7 @@ function switchServer(server){
   pagerQuit();
   if(activeTailTid){clearInterval(activeTailTid);activeTailTid=null;}
   up();
-  if(typeof QuizEngine!=='undefined')QuizEngine.onTab(activeTab);
+  if(typeof QuizEngine!=='undefined'){QuizEngine.onTab(activeTab);QuizEngine.onServer(activeServer);}
   _showWelcome(server);
 }
 
@@ -2723,7 +2723,9 @@ const QuizEngine={
     if(q.initialState){
       if(q.initialState.sapOn!==undefined){
         sapOn=q.initialState.sapOn;
-        if(activeServer==='ap1')ap1On=sapOn; else ap2On=sapOn;
+        if(activeServer==='ap1')ap1On=sapOn;
+        else if(activeServer==='ap2')ap2On=sapOn;
+        // db 서버에서 시작하는 경우 ap 플래그는 건드리지 않음
       }
       if(q.initialState.dbOn!==undefined){
         dbOn=q.initialState.dbOn;
@@ -2757,6 +2759,19 @@ const QuizEngine={
     if(this.mode==='step'){
       const step=this._curStep();
       if(step&&step.expect.type==='tab'&&step.expect.value===newTab){
+        this._passStep();
+      }
+    }else{
+      this._checkFree();
+    }
+  },
+
+  // switchServer() 에서 서버 전환 후 호출 — HA 전용 server 타입 스텝 처리
+  onServer(newServer){
+    if(!this.active)return;
+    if(this.mode==='step'){
+      const step=this._curStep();
+      if(step&&step.expect.type==='server'&&step.expect.value===newServer){
         this._passStep();
       }
     }else{
@@ -2878,16 +2893,18 @@ const QuizUI={
   _renderList(){
     const cats=document.getElementById('qz-cats');
     cats.innerHTML='';
-    const stats=QuizStorage.stats();
+    // 현재 모드에 맞는 퀴즈만 표시 (haOnly는 이중화 모드에서만 노출)
+    const visibleQuizzes=QUIZZES.filter(q=>!q.haOnly||haMode);
+    const doneCnt=visibleQuizzes.filter(q=>QuizStorage.isDone(q.id)).length;
     // 진도 헤더
     const prog=document.createElement('div');
     prog.style.cssText='font-size:11px;color:#6e7681;margin-bottom:12px';
-    prog.textContent=`진도: ${stats.done} / ${stats.total} 완료`;
+    prog.textContent=`진도: ${doneCnt} / ${visibleQuizzes.length} 완료${haMode?' (이중화 모드)':''}`;
     cats.appendChild(prog);
 
     // 카테고리별 그룹
     const groups={};
-    QUIZZES.forEach(q=>{
+    visibleQuizzes.forEach(q=>{
       if(!groups[q.category])groups[q.category]=[];
       groups[q.category].push(q);
     });
@@ -2931,7 +2948,7 @@ const QuizUI={
       const total=q.steps.length;
       document.getElementById('qz-step-badge').textContent=`${QuizEngine.stepIdx+1}/${total}`;
       document.getElementById('qz-step-badge').style.display='';
-      instrEl.textContent=step?step.instruction:'(완료)';
+      instrEl.textContent=step?(haMode&&step.haInstruction?step.haInstruction:step.instruction):'(완료)';
     }else{
       document.getElementById('qz-step-badge').style.display='none';
       instrEl.textContent=q.freeform.description;
@@ -2950,7 +2967,7 @@ const QuizUI={
     let hint='';
     if(QuizEngine.mode==='step'){
       const step=QuizEngine.quiz.steps[QuizEngine.stepIdx];
-      hint=step?step.hint:'(힌트 없음)';
+      hint=step?(haMode&&step.haHint?step.haHint:step.hint):'(힌트 없음)';
     }else{
       hint=QuizEngine.quiz.freeform.hint||'(힌트 없음)';
     }
@@ -2972,10 +2989,10 @@ const QUIZZES=[
     description:'SAP 시스템의 올바른 기동 순서를 실습합니다.',
     initialState:{sapOn:false,dbOn:false},
     steps:[
-      {instruction:'① DB 서버 탭으로 전환하세요.',expect:{type:'tab',value:'db'},hint:'상단의 "DB Server (s4hdb01)" 탭을 클릭하세요.',feedback:'DB 탭으로 전환되었습니다.'},
+      {instruction:'① DB 서버 탭으로 전환하세요.',expect:{type:'tab',value:'db'},hint:'상단의 "DB Server (s4hdb01)" 탭을 클릭하세요.',haHint:'이중화 모드: 상단의 "DB1 (s4hdb01, Primary)" 탭을 클릭하세요.',feedback:'DB 탭으로 전환되었습니다.'},
       {instruction:'② HANA DB를 기동하세요. (HDB 방식)',expect:{type:'cmd',pattern:/^HDB\s+start$/i},hint:'HDB start 를 입력하세요.',feedback:'HANA 기동 명령이 실행되었습니다.'},
       {instruction:'③ DB 기동 상태를 확인하세요.',expect:{type:'state',key:'dbOn',value:true},hint:'HDB start 실행 후 상태가 자동으로 RUNNING으로 전환됩니다.',feedback:'HANA DB가 RUNNING 상태입니다.'},
-      {instruction:'④ AP 서버 탭으로 전환하세요.',expect:{type:'tab',value:'ap'},hint:'상단의 "AP Server (s4happ01)" 탭을 클릭하세요.',feedback:'AP 탭으로 전환되었습니다.'},
+      {instruction:'④ AP 서버 탭으로 전환하세요.',expect:{type:'tab',value:'ap'},hint:'상단의 "AP Server (s4happ01)" 탭을 클릭하세요.',haHint:'이중화 모드: 상단의 "AP1 (s4happ01, D00)" 탭을 클릭하세요.',feedback:'AP 탭으로 전환되었습니다.'},
       {instruction:'⑤ SAP 시스템을 기동하세요.',expect:{type:'cmd',pattern:/^startsap(\s|$)/i},hint:'startsap 를 입력하세요.',feedback:'SAP 기동 명령이 실행되었습니다.'},
       {instruction:'⑥ SAP 기동 상태를 확인하세요. (GetProcessList)',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 00 -function GetProcessList',feedback:'프로세스 목록이 조회되었습니다.'},
     ],
@@ -3008,7 +3025,7 @@ const QUIZZES=[
     steps:[
       {instruction:'① AP 서버에서 SAP를 먼저 정지하세요.',expect:{type:'cmd',pattern:/^stopsap(\s|$)/i},hint:'stopsap 명령어를 사용하세요.',feedback:'SAP 정지 명령이 실행되었습니다.'},
       {instruction:'② SAP 정지 완료 상태를 확인하세요.',expect:{type:'state',key:'sapOn',value:false},hint:'stopsap 완료 후 자동으로 정지 상태가 됩니다.',feedback:'SAP가 정지되었습니다.'},
-      {instruction:'③ DB 서버 탭으로 전환하세요.',expect:{type:'tab',value:'db'},hint:'상단 DB Server 탭을 클릭하세요.',feedback:'DB 탭으로 전환되었습니다.'},
+      {instruction:'③ DB 서버 탭으로 전환하세요.',expect:{type:'tab',value:'db'},hint:'상단 DB Server 탭을 클릭하세요.',haHint:'이중화 모드: 상단의 "DB1 (s4hdb01, Primary)" 탭을 클릭하세요.',feedback:'DB 탭으로 전환되었습니다.'},
       {instruction:'④ HANA DB를 정지하세요.',expect:{type:'cmd',pattern:/^HDB\s+stop$/i},hint:'HDB stop 을 입력하세요.',feedback:'HANA 정지 명령이 실행되었습니다.'},
     ],
     freeform:{description:'SAP 시스템 전체를 올바른 순서로 정지시키세요.\nAP(SAP)를 먼저 정지한 후, DB(HANA)를 정지해야 합니다.',goalState:{sapOn:false,dbOn:false},hint:'순서: stopsap → (AP) → HDB stop (DB 탭)'},
@@ -3697,7 +3714,7 @@ const QUIZZES=[
       {instruction:'② dev_w0에서 ERROR를 grep으로 확인하세요.',expect:{type:'cmd',pattern:/grep\s+.*ERROR\s+.*dev_w0/i},hint:'grep ERROR /usr/sap/S4H/D00/work/dev_w0',feedback:'오류 원인이 확인되었습니다.'},
       {instruction:'③ R3trans -d로 DB 연결 상태를 테스트하세요.',expect:{type:'cmd',pattern:/^R3trans\s+-d$/i},hint:'R3trans -d — DB 연결 실패 확인',feedback:'DB 연결이 실패했습니다.'},
       {instruction:'④ ping으로 s4hdb01 네트워크 연결을 확인하세요.',expect:{type:'cmd',pattern:/^ping\s+.*s4hdb01/i},hint:'ping -c 4 s4hdb01',feedback:'네트워크는 정상입니다.'},
-      {instruction:'⑤ DB 서버 탭으로 전환하여 DB를 기동하세요.',expect:{type:'tab',value:'db'},hint:'상단 DB Server 탭으로 이동 후 HDB start',feedback:'DB 서버로 이동했습니다.'},
+      {instruction:'⑤ DB 서버 탭으로 전환하여 DB를 기동하세요.',expect:{type:'tab',value:'db'},hint:'상단 DB Server 탭으로 이동 후 HDB start',haHint:'이중화 모드: DB1 (s4hdb01, Primary) 탭으로 이동 후 HDB start',feedback:'DB 서버로 이동했습니다.'},
     ],
     freeform:{description:'SAP 기동 실패 시 트러블슈팅:\n1. 기동 시도 → 오류 확인\n2. dev_w0 grep ERROR\n3. R3trans -d DB 연결 확인\n4. ping 네트워크 확인\n5. DB 기동 후 재시도',goalState:{},hint:'startsap → grep ERROR dev_w0 → R3trans -d → ping s4hdb01 → (DB 탭) HDB start'},
   },
@@ -3706,11 +3723,11 @@ const QUIZZES=[
     description:'HANA가 비정상 종료된 상황에서 복구하는 전체 흐름을 실습합니다.',
     initialState:{sapOn:false,dbOn:false},
     steps:[
-      {instruction:'① DB 서버로 전환하여 HANA 상태를 확인하세요.',expect:{type:'tab',value:'db'},hint:'DB 탭으로 전환 후 HDB info',feedback:'DB 서버로 전환되었습니다.'},
+      {instruction:'① DB 서버로 전환하여 HANA 상태를 확인하세요.',expect:{type:'tab',value:'db'},hint:'DB 탭으로 전환 후 HDB info',haHint:'이중화 모드: DB1 (s4hdb01, Primary) 탭으로 전환 후 HDB info',feedback:'DB 서버로 전환되었습니다.'},
       {instruction:'② HDB info로 프로세스 상태를 확인하세요.',expect:{type:'cmd',pattern:/^HDB\s+info$/i},hint:'HDB info',feedback:'HANA가 정지된 것을 확인했습니다.'},
       {instruction:'③ HANA를 기동하세요.',expect:{type:'cmd',pattern:/^HDB\s+start$/i},hint:'HDB start',feedback:'HANA 기동 명령이 실행되었습니다.'},
       {instruction:'④ HANA 기동 완료를 확인하세요. (GetProcessList)',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 00 -function GetProcessList',feedback:'HANA 서비스가 모두 GREEN입니다.'},
-      {instruction:'⑤ AP 서버로 전환하여 SAP를 기동하세요.',expect:{type:'tab',value:'ap'},hint:'AP 탭으로 전환',feedback:'AP 서버로 전환되었습니다.'},
+      {instruction:'⑤ AP 서버로 전환하여 SAP를 기동하세요.',expect:{type:'tab',value:'ap'},hint:'AP 탭으로 전환',haHint:'이중화 모드: AP1 (s4happ01, D00) 탭으로 전환',feedback:'AP 서버로 전환되었습니다.'},
     ],
     freeform:{description:'HANA와 SAP 모두 정지된 상태에서 전체 시스템을 복구하세요.',goalState:{sapOn:true,dbOn:true},hint:'DB 탭 → HDB start → (확인) → AP 탭 → startsap'},
   },
@@ -3748,6 +3765,71 @@ const QUIZZES=[
       {instruction:'④ systemctl status hdbdaemon 으로 서비스 상태를 확인하세요.',expect:{type:'cmd',pattern:/^systemctl\s+status\s+hdbdaemon$/i},hint:'systemctl status hdbdaemon',feedback:'hdbdaemon 서비스 상태가 확인되었습니다.'},
     ],
     freeform:{description:'HANA 시스템 종합 점검:\n① 복제 상태 (hdbcons)\n② 백업 진단 (hdbbackupdiag)\n③ 볼륨 사용량 (M_DISK_USAGE)\n④ 서비스 상태 (systemctl)',goalState:{},hint:'hdbcons → hdbbackupdiag --check → M_DISK_USAGE → systemctl status hdbdaemon'},
+  },
+
+  // ── Q. HA 이중화 (이중화 모드에서만 표시) ──────────────────────
+  {
+    id:'HA001',title:'HANA SR Primary 상태 확인',category:'Q. HA 이중화',difficulty:'초급',tab:'db',haOnly:true,
+    description:'DB1(Primary) 서버에서 HANA System Replication 상태를 확인합니다.',
+    initialState:{sapOn:true,dbOn:true},
+    steps:[
+      {instruction:'① DB1(Primary) 서버로 전환하세요.',expect:{type:'server',value:'db1'},hint:'이중화 모드 상단의 "DB1 (s4hdb01)" 탭을 클릭하세요.',feedback:'DB1 Primary 서버로 전환되었습니다.'},
+      {instruction:'② hdbnsutil -sr_state 로 복제 상태를 확인하세요.',expect:{type:'cmd',pattern:/hdbnsutil\s+(-{1,2})sr_state/i},hint:'hdbnsutil -sr_state',feedback:'Primary SR 상태가 출력되었습니다.'},
+      {instruction:'③ hdbnsutil -sr_stateConfiguration 으로 복제 설정을 확인하세요.',expect:{type:'cmd',pattern:/hdbnsutil\s+(-{1,2})sr_stateConfiguration/i},hint:'hdbnsutil -sr_stateConfiguration',feedback:'SR 복제 설정 정보가 출력되었습니다.'},
+    ],
+    freeform:{description:'DB1(Primary) 서버에서 HANA SR 상태를 점검하세요.\nmode: primary, operation mode: primary 가 출력되는지 확인합니다.',goalState:{},hint:'DB1 탭 → hdbnsutil -sr_state → hdbnsutil -sr_stateConfiguration'},
+  },
+  {
+    id:'HA002',title:'HANA SR Secondary 상태 점검',category:'Q. HA 이중화',difficulty:'초급',tab:'db',haOnly:true,
+    description:'DB2(Secondary) 서버에서 복제 동기화 상태를 확인합니다.',
+    initialState:{sapOn:true,dbOn:true},
+    steps:[
+      {instruction:'① DB2(Secondary) 서버로 전환하세요.',expect:{type:'server',value:'db2'},hint:'이중화 모드 상단의 "DB2 (s4hdb02)" 탭을 클릭하세요.',feedback:'DB2 Secondary 서버로 전환되었습니다.'},
+      {instruction:'② hdbnsutil -sr_state 로 Secondary 상태를 확인하세요.',expect:{type:'cmd',pattern:/hdbnsutil\s+(-{1,2})sr_state/i},hint:'hdbnsutil -sr_state',feedback:'Secondary mode: sync 상태가 출력되었습니다.'},
+      {instruction:'③ HDB info 로 Secondary의 프로세스 상태를 확인하세요.',expect:{type:'cmd',pattern:/^HDB\s+info$/i},hint:'HDB info',feedback:'Secondary HANA 프로세스 목록이 출력되었습니다.'},
+    ],
+    freeform:{description:'DB2(Secondary) 서버에서 복제 동기화 상태를 점검하세요.\nmode: sync, operation mode: secondary 가 출력되는지 확인합니다.',goalState:{},hint:'DB2 탭 → hdbnsutil -sr_state → HDB info'},
+  },
+  {
+    id:'HA003',title:'DB Failover 시뮬레이션',category:'Q. HA 이중화',difficulty:'고급',tab:'db',haOnly:true,
+    description:'Primary(DB1) 장애 상황에서 Secondary(DB2) 전환 절차를 실습합니다.',
+    initialState:{sapOn:false,dbOn:true},
+    steps:[
+      {instruction:'① DB1(Primary)로 전환하여 SR 상태를 확인하세요.',expect:{type:'server',value:'db1'},hint:'DB1 탭을 클릭하세요.',feedback:'DB1 Primary 서버로 전환되었습니다.'},
+      {instruction:'② Primary HANA를 정지하세요. (장애 시뮬레이션)',expect:{type:'cmd',pattern:/^HDB\s+stop$/i},hint:'HDB stop',feedback:'Primary HANA 정지 명령이 실행되었습니다.'},
+      {instruction:'③ DB2(Secondary)로 전환하세요.',expect:{type:'server',value:'db2'},hint:'DB2 탭을 클릭하세요.',feedback:'DB2 Secondary 서버로 전환되었습니다.'},
+      {instruction:'④ DB2에서 SR 상태를 확인하세요.',expect:{type:'cmd',pattern:/hdbnsutil\s+(-{1,2})sr_state/i},hint:'hdbnsutil -sr_state',feedback:'Secondary 상태가 확인되었습니다. 실제 환경에서는 hdbnsutil -sr_takeover 로 Takeover를 실행합니다.'},
+      {instruction:'⑤ DB2에서 HDB info 로 서비스 상태를 확인하세요.',expect:{type:'cmd',pattern:/^HDB\s+info$/i},hint:'HDB info',feedback:'Secondary 서비스 상태가 확인되었습니다.'},
+    ],
+    freeform:{description:'Primary(DB1) 장애 시뮬레이션:\n① DB1 SR 상태 확인\n② DB1 HANA 정지 (HDB stop)\n③ DB2로 전환\n④ DB2 SR 상태 확인\n⑤ DB2 서비스 확인\n\n실제 환경에서는 ④ 후 hdbnsutil -sr_takeover 를 실행합니다.',goalState:{},hint:'DB1 탭 → hdbnsutil -sr_state → HDB stop → DB2 탭 → hdbnsutil -sr_state → HDB info'},
+  },
+  {
+    id:'HA004',title:'AP2 서버 기동 및 확인',category:'Q. HA 이중화',difficulty:'초급',tab:'ap',haOnly:true,
+    description:'AP2(s4happ02, D01) 서버에서 SAP 인스턴스를 기동하고 상태를 확인합니다.',
+    initialState:{sapOn:false,dbOn:true},
+    steps:[
+      {instruction:'① AP2 서버(s4happ02)로 전환하세요.',expect:{type:'server',value:'ap2'},hint:'이중화 모드 상단의 "AP2 (s4happ02)" 탭을 클릭하세요.',feedback:'AP2 서버로 전환되었습니다.'},
+      {instruction:'② GetProcessList로 현재 AP2 프로세스 상태를 확인하세요.',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 01 -function GetProcessList  (AP2 인스턴스 번호는 01)',feedback:'AP2 프로세스 목록이 조회되었습니다.'},
+      {instruction:'③ AP2에서 SAP를 기동하세요.',expect:{type:'cmd',pattern:/^startsap(\s|$)/i},hint:'startsap',feedback:'AP2 SAP 기동 명령이 실행되었습니다.'},
+      {instruction:'④ 기동 완료 후 GetProcessList로 상태를 재확인하세요.',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 01 -function GetProcessList',feedback:'AP2 SAP가 GREEN 상태로 기동되었습니다.'},
+    ],
+    freeform:{description:'AP2(s4happ02, D01) 서버에서 SAP를 기동하고 상태를 확인하세요.\nAP2 인스턴스 번호는 01 입니다.',goalState:{sapOn:true},hint:'AP2 탭 → sapcontrol -nr 01 -function GetProcessList → startsap → (확인)'},
+  },
+  {
+    id:'HA005',title:'전체 HA 시스템 점검 루틴',category:'Q. HA 이중화',difficulty:'중급',tab:'either',haOnly:true,
+    description:'4개 서버(AP1/AP2/DB1/DB2)를 순서대로 점검하는 HA 점검 루틴을 실습합니다.',
+    initialState:{sapOn:true,dbOn:true},
+    steps:[
+      {instruction:'① AP1(s4happ01)로 전환하여 SAP 프로세스를 확인하세요.',expect:{type:'server',value:'ap1'},hint:'AP1 탭을 클릭하세요.',feedback:'AP1 서버로 전환되었습니다.'},
+      {instruction:'② AP1 GetProcessList 를 실행하세요.',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 00 -function GetProcessList',feedback:'AP1 프로세스 상태가 확인되었습니다.'},
+      {instruction:'③ AP2(s4happ02)로 전환하세요.',expect:{type:'server',value:'ap2'},hint:'AP2 탭을 클릭하세요.',feedback:'AP2 서버로 전환되었습니다.'},
+      {instruction:'④ AP2 GetProcessList 를 실행하세요.',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 01 -function GetProcessList',feedback:'AP2 프로세스 상태가 확인되었습니다.'},
+      {instruction:'⑤ DB1(Primary)로 전환하세요.',expect:{type:'server',value:'db1'},hint:'DB1 탭을 클릭하세요.',feedback:'DB1 Primary 서버로 전환되었습니다.'},
+      {instruction:'⑥ DB1 SR 상태를 확인하세요.',expect:{type:'cmd',pattern:/hdbnsutil\s+(-{1,2})sr_state/i},hint:'hdbnsutil -sr_state',feedback:'DB1 Primary 상태가 확인되었습니다.'},
+      {instruction:'⑦ DB2(Secondary)로 전환하세요.',expect:{type:'server',value:'db2'},hint:'DB2 탭을 클릭하세요.',feedback:'DB2 Secondary 서버로 전환되었습니다.'},
+      {instruction:'⑧ DB2 SR 상태를 확인하세요.',expect:{type:'cmd',pattern:/hdbnsutil\s+(-{1,2})sr_state/i},hint:'hdbnsutil -sr_state',feedback:'DB2 Secondary 복제 동기화 상태가 확인되었습니다.'},
+    ],
+    freeform:{description:'4개 서버를 순서대로 순회하며 HA 시스템 전체 점검을 수행하세요.\nAP1 → AP2 → DB1(SR) → DB2(SR) 순서로 점검합니다.',goalState:{},hint:'AP1→GetProcessList → AP2→GetProcessList → DB1→hdbnsutil -sr_state → DB2→hdbnsutil -sr_state'},
   },
 ];
 
