@@ -1,0 +1,84 @@
+---
+name: run-sap-bc-terminal
+description: Run, start, build, screenshot, test, verify, or smoke-test the SAP Basis Training Terminal web app
+---
+
+SAP Basis Training Terminal is a single-file static web app (`index.html`).
+It has no build step. The driver is `smoke.py` — it starts Python's `http.server`,
+fetches the page, asserts 48 structural checks, and exits.
+All logic runs client-side in JavaScript; smoke.py validates HTML/JS source integrity.
+
+## Prerequisites
+
+- Python 3.x (already present; ships with the project's `launch.json` config)
+- No npm, no build tool, no external library
+
+## Run (agent path) — smoke test
+
+```bash
+cd <repo-root>
+python .claude/skills/run-sap-bc-terminal/smoke.py
+```
+
+Optional: pass a port (default 19080 to avoid conflicts with `launch.json` port 8080):
+
+```bash
+python .claude/skills/run-sap-bc-terminal/smoke.py 19080
+```
+
+The script:
+1. Starts `python -m http.server` on the given port
+2. Fetches `http://localhost:<port>/`
+3. Checks 34 items: HTTP 200, page title, core DOM IDs, JS symbols, SAP/HANA commands, dark terminal bg
+4. Prints PASS/FAIL per item, exits 0 on all-pass, 1 on any failure
+5. Stops the server
+
+All 34 checks passed on 2026-06-03 (verified in this session).
+
+## Run (human path)
+
+```bash
+cd <repo-root>
+python -m http.server 8080
+```
+
+Then open `http://localhost:8080/` in a browser. Press `Ctrl+C` to stop.
+This matches the VSCode `launch.json` config.
+
+## What the smoke test covers
+
+| Category | Checks |
+|---|---|
+| Page load | HTTP 200, body length > 1000 bytes |
+| Title | `SAP Basis Training Terminal` |
+| DOM IDs | `tr`, `tab-ap`, `tab-db`, `output`, `ci`, `hb-ap`, `hb-db`, `mode-single`, `mode-ha` |
+| Core JS state | `const CMDS`, `sapOn`, `dbOn`, `switchTab`, `FS_AP/DB`, `FILES_AP/DB` |
+| HA mode | `haMode`, `activeServer`, `switchServer`, `ap1On`, `ap2On`, `db1On`, `db2On` |
+| SAP cmds | `startsap`, `stopsap`, `sapcontrol`, `dpmon`, `R3trans`, `lgtst`, `disp+work`, `tp` |
+| HANA cmds | `HDB`, `hdbsql`, `hdbcons`, `hdbbackupdiag`, `hdbnsutil` |
+| Quiz engine | `const QUIZZES`, `QuizEngine`, `QuizUI`, `QuizStorage`, `haOnly`, `haHint`, `onServer` |
+| Styling | `#0d1117` (dark terminal background), `APP_VERSION` |
+
+All 48 checks passed on 2026-06-05 (verified in this session).
+
+## What the smoke test does NOT cover
+
+- JavaScript runtime behaviour (command execution, tab switching, pipe/redirect logic)
+  → These require a real browser. For JS-level changes, run the human path and test manually.
+- Quiz engine runtime (step progression, hint display, HA mode quiz filtering)
+  → Requires browser interaction. Validate manually via `http://localhost:8080`.
+
+## Gotchas
+
+- **Single-file constraint**: The project must stay as one `index.html`. Never split into separate JS/CSS files.
+- **Port conflict**: `launch.json` uses port 8080. The smoke script defaults to 19080 to avoid collision when both run simultaneously.
+- **Windows encoding**: The smoke script uses ASCII-safe separators (no Unicode em-dash) due to Windows `cp949` console encoding.
+- **ROOT path**: The smoke script resolves the project root as `../../..` relative to its own location (`skills/run-sap-bc-terminal/`). Changing the skill directory location breaks this; update the `os.path.abspath(...)` line accordingly.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `Address already in use` | Change the port argument: `python smoke.py 19999` |
+| `UnicodeEncodeError: 'cp949'` | Ensure no non-ASCII chars in print statements; use `--` not `—` |
+| All 34 checks fail | ROOT path is wrong; run `python -c "import os; print(os.path.abspath('../../..'))"` from the skill dir to verify |
