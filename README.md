@@ -1,241 +1,259 @@
 # SAP Basis Training Terminal
 
-신입 SAP Basis 컨설턴트를 위한 **웹 기반 OS단 교육용 터미널 시뮬레이터**입니다.  
-실제 SAP 시스템 없이 브라우저에서 AP 서버 / DB 서버의 디렉토리 구조, 환경변수, 명령어를 실습하고 퀴즈로 점검할 수 있습니다.
+> A browser-based OS-level terminal simulator for SAP Basis engineers — built entirely with Vanilla JS, zero dependencies, deployed as a single HTML file.
+
+**[Live Demo →](https://newfekim.github.io/sap-bc-terminal/)** &nbsp;|&nbsp; Built with [Claude Code](https://claude.ai/code) + [Codex](https://openai.com/codex)
 
 ---
 
-## 개요
+## What This Is
 
-SAP Basis 업무에서 가장 빈번하게 사용하는 OS 레벨 작업을 브라우저에서 직접 실습할 수 있도록 만든 교육 도구입니다.  
-별도 서버나 SAP 라이선스 없이 `index.html` 파일 하나만으로 실행됩니다.
+신입 SAP Basis 컨설턴트를 위한 **웹 기반 OS단 교육용 터미널 시뮬레이터**입니다.
 
-> **주의**: 이 프로젝트의 모든 서버 주소, IP, 계정명, 비밀번호는 **교육용 더미 데이터**입니다.  
-> 실제 시스템과 연결되지 않으며, 어떠한 실제 자격증명도 포함되어 있지 않습니다.
+실제 SAP 라이선스·서버 없이 브라우저 하나로 아래를 실습할 수 있습니다:
 
----
+- AP 서버 / DB 서버 터미널 명령어 실행
+- SAP 기동·정지 시뮬레이션 (startsap / stopsap / HDB start·stop)
+- **AP/DB 이중화(HA) 구조** — AP1·AP2·DB1·DB2 4-서버 토폴로지
+- 82개 퀴즈 시나리오 (단계별 / 자유 모드, HA 전용 퀴즈 포함)
 
-## 대상
-
-- SAP Basis 컨설턴트 신입 / 입문자
-- SAP 환경의 Linux OS 명령어를 처음 접하는 학습자
-- SAP 기동/정지 절차 및 진단 명령어를 반복 연습하고 싶은 분
+> **Security note:** All hostnames, IPs, credentials in this project are dummy data for educational purposes. No real credentials are included.
 
 ---
 
-## 실습 환경
+## Technical Highlights
 
-| 구분 | 내용 |
-|------|------|
-| AP 서버 | `s4happ01` — ABAP 인스턴스 (D00), ASCS01 |
-| DB 서버 | `s4hdb01` — SAP HANA 2.0 (HDB00) |
-| OS | SUSE Linux Enterprise Server 15 SP4 |
-| SAP SID | S4H / 인스턴스 번호 00 |
+| Constraint | Decision | Why |
+|---|---|---|
+| **Zero dependencies** | Pure Vanilla JS + HTML/CSS | Single-file deployment to any static host |
+| **Single `index.html`** | No build step, no npm | Open the file — it runs |
+| **HA simulation** | 4 independent server states with shared `sapOn`/`dbOn` flags | Mirrors real SAP dual-stack topology |
+| **Quiz engine** | Step validator (`cmd` / `tab` / `server` / `state` types) with localStorage persistence | No backend needed |
+| **Pipe & redirect** | Real `|` filtering + `>` / `>>` / `less` / `more` pager | Teaches actual shell muscle memory |
 
 ---
 
-## 주요 기능
+## Architecture
 
-### AP 서버 탭 (`s4happ01`)
+```
+State
+├── Single mode:  activeTab ('ap' | 'db')  +  sapOn / dbOn
+└── HA mode:      activeServer ('ap1'|'ap2'|'db1'|'db2')
+                  + ap1On / ap2On / db1On / db2On (independent)
 
-**SAP 기동/정지**
-```bash
-startsap          # SAP 시스템 전체 기동
-stopsap           # SAP 시스템 전체 정지
+Data
+├── FS_AP / FS_DB      — virtual filesystem trees
+├── FILES_AP / FILES_DB — simulated file contents
+└── QUIZZES[]          — 82 quiz definitions (haOnly:true for HA-only)
+
+QuizEngine
+├── step types: cmd (regex), tab, server, state
+├── haHint / haInstruction — HA-aware hint overrides
+└── onServer() — triggered by switchServer(), validates {type:'server'} steps
 ```
 
-**SAP 상태 조회**
+### HA Mode Topology
+
+```
+단일 모드                     이중화(HA) 모드
+┌─────────────────┐           ┌──────────────────────────────────────────┐
+│  AP  │  DB      │           │ AP1 (s4happ01) │ AP2 (s4happ02) │ DB1 … │
+│  탭  │  탭      │           │    Primary     │   Secondary    │       │
+└─────────────────┘           └──────────────────────────────────────────┘
+```
+
+---
+
+## Simulated Environment
+
+| Item | Value |
+|------|-------|
+| OS | SUSE Linux Enterprise Server 15 SP4 (Kernel 5.14.21) |
+| SAP | S/4HANA 2023 — ABAP Kernel 793, Instance D00/D01 (NR=00/01) |
+| HANA | SAP HANA 2.0 SPS 06+ |
+| SID | S4H |
+| AP hosts | `s4happ01` (Primary), `s4happ02` (Secondary) |
+| DB hosts | `s4hdb01` (Primary), `s4hdb02` (Secondary / SR Sync) |
+
+---
+
+## Command Coverage
+
+<details>
+<summary><strong>SAP Commands (click to expand)</strong></summary>
+
 ```bash
+# Lifecycle
+startsap / stopsap
 sapcontrol -nr 00 -function GetProcessList
 sapcontrol -nr 00 -function GetSystemInstanceList
+sapcontrol -nr 00 -function Start / Stop / StopWait
+sapcontrol -nr 00 -function ABAPGetWPTable
+sapcontrol -nr 00 -function ParameterValue <param>
 sapcontrol -nr 00 -function GetAlertTree
-sapcontrol -nr 00 -function ParameterValue rdisp/wp_no_dia
-dpmon             # Work Process 모니터 (= sm50)
-R3trans -d        # DB 연결 테스트
+
+# Diagnostics
+dpmon / sm50
+R3trans -d
 lgtst /H/s4happ01 /S/sapmsS4H
+disp+work -version / -V
+
+# Transport
+tp showbuffer S4H
+tp addtobuffer <trkorr> S4H
+tp importall S4H
 ```
+</details>
 
-**프로파일 / 트레이스 확인**
+<details>
+<summary><strong>HANA Commands</strong></summary>
+
 ```bash
-cat /usr/sap/S4H/SYS/profile/DEFAULT.PFL
-tail -f /usr/sap/S4H/D00/work/dev_w0
-grep ERROR /usr/sap/S4H/D00/work/dev_w0
-```
-
----
-
-### DB 서버 탭 (`s4hdb01`)
-
-**HANA 기동/정지**
-```bash
-HDB start         # HANA 기동
-HDB stop          # HANA 정지
-HDB info          # 서비스 상태 확인
-HDB version       # 버전 정보
-
-# sapcontrol 방식 (동일 효과)
-sapcontrol -nr 00 -function Start
-sapcontrol -nr 00 -function Stop
-sapcontrol -nr 00 -function GetProcessList
-```
-
-**HANA SQL 조회**
-```bash
-hdbsql -i 00 -u SYSTEM -p <password> "SELECT * FROM M_SERVICES"
-hdbsql -i 00 -u SYSTEM -p <password> "SELECT * FROM M_DATABASES"
-hdbsql -i 00 -u SYSTEM -p <password> "SELECT * FROM M_DISK_USAGE"
-hdbsql -i 00 -u SYSTEM -p <password> "SELECT * FROM M_BACKUP_CATALOG"
-```
-
-**HANA 진단**
-```bash
+HDB start / stop / info / version
+hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_SERVICES"
+hdbsql ... "M_DATABASES / M_DISK_USAGE / M_BACKUP_CATALOG / M_CONNECTIONS"
+hdbsql ... "M_SYSTEM_OVERVIEW / M_VOLUME_SIZES / M_LICENSE"
 hdbcons "replication info"
 hdbbackupdiag --check
-tail -f /usr/sap/S4H/HDB00/trace/nameserver_s4hdb01.30001.000.trc
+hdbnsutil -sr_state
+hdbnsutil -sr_stateConfiguration
 ```
+</details>
 
----
-
-### 공통 Linux 명령어
+<details>
+<summary><strong>Linux Commands</strong></summary>
 
 ```bash
-# 파일시스템
-ls -la /usr/sap/S4H    cd /hana/shared    cat /etc/hosts    pwd
-vi /usr/sap/S4H/SYS/profile/DEFAULT.PFL
-find /usr/sap/S4H -name "*.log"
-find /usr/sap/S4H -size +5M          # 파일 크기 필터
-find /usr/sap/S4H -mtime -1          # 최근 1일 내 수정
-grep -i error /var/log/messages
+# Filesystem
+ls / cd / cat / vi / less / more / head / tail -f / find / wc / sort / uniq
 
-# OS 리소스
-df -h    free -m    top    ps aux    uptime    vmstat
-du -sh /usr/sap/trans
-du -h --max-depth=1 /usr/sap/trans
+# Process & Resource
+ps / df / free / top / vmstat / iostat -x / uptime / dmesg
 
-# 네트워크
-netstat -tlnp    ss -tlnp    lsof -i :30015
-ping s4hdb01 -c 4
+# Network
+ping / netstat / ss / lsof / nslookup
 
-# 서비스 상태
-systemctl status sapinit
-systemctl status hdbdaemon
+# Permission
+chmod / chown / su / id / groups
 
-# 파이프 & 리다이렉션
-ps aux | grep dw
-tail -f dev_w0 | grep ERROR
-env | grep SAP
+# System
+systemctl status / uname / env / date / history / clear
 ```
+</details>
 
 ---
 
-### AP ↔ DB 연계 시뮬레이션
+## Quiz System
 
-실제 SAP 환경과 동일하게 AP/DB 간 의존관계가 구현되어 있습니다.
+오른쪽 상단 **Quiz** 버튼으로 진입.
 
-| 시나리오 | 동작 |
-|----------|------|
-| DB 정지 상태에서 `startsap` | D00 기동 시 DB 접속 실패로 중단 |
-| DB 정지 상태에서 `R3trans -d` | DB 직접 접속 실패 (HANA 상태 체크) |
-| DB 정지 상태에서 `sapcontrol GetProcessList` | WP 상태 `RED / Waiting for DB` 표시 |
-| `sapcontrol GetSystemInstanceList` | AP/DB 양쪽 GREEN/GRAY 실시간 반영 |
+| Mode | Description |
+|------|-------------|
+| **단계별** | 순서대로 안내 받으며 실습. 힌트 요청 가능 |
+| **자유** | 목표 상태만 주어지고 자유롭게 탐색 |
 
----
+| Category | Topic | Count |
+|----------|-------|-------|
+| A–F | SAP 기동·정지, WP 진단, 트레이스, 프로파일, 권한 | 31 |
+| G–J | HANA 기동, SQL 조회, 백업, 복제 | 20 |
+| K–P | 전송, 디스크·메모리, 보안감사, 네트워크, 서비스, 종합 | 26 |
+| **Q** | **HA 이중화 전용** (haOnly) | **5** |
+| **Total** | Single mode: **77** / HA mode: **82** | |
 
-## 퀴즈 시스템 (Phase 3)
+### Quiz Step Types
 
-오른쪽 상단 **Quiz** 버튼으로 진입합니다.
-
-### 특징
-
-- **77개 시나리오** — 카테고리 A~P (기동/정지, 트레이스, 백업, 네트워크, 보안 감사 등)
-- **단계별 모드** — 순서대로 안내받으며 실습
-- **자유 모드** — 목표 상태만 주어지고 자유롭게 명령어 실행
-- **힌트** — 요청 시에만 표시 (자동 표시 없음)
-- **진도 저장** — localStorage에 자동 저장 (브라우저 닫아도 유지)
-- **채점 없음** — 피드백 위주, 부담 없는 실습 환경
-
-### 시나리오 카테고리
-
-| 카테고리 | 내용 | 시나리오 수 |
-|----------|------|------------|
-| A | SAP 기동/정지 | 6개 |
-| B | SAP 상태 확인 | 5개 |
-| C | Work Process 진단 | 5개 |
-| D | 트레이스 파일 분석 | 5개 |
-| E | 프로파일 파라미터 | 5개 |
-| F | 사용자/권한 관리 | 5개 |
-| G | HANA 기동/정지 | 5개 |
-| H | HANA SQL 조회 | 5개 |
-| I | HANA 백업/복구 | 5개 |
-| J | HANA 복제 확인 | 5개 |
-| K | 전송 관리 | 5개 |
-| L | 디스크/메모리 진단 | 5개 |
-| M | 보안 감사 로그 | 5개 |
-| N | 네트워크 진단 | 5개 |
-| O | 서비스 기동 확인 | 4개 |
-| P | 종합 실습 | 2개 |
-
-### 검증 방식
-
-퀴즈는 3가지 방식으로 수행을 검증합니다.
-
-| 타입 | 설명 |
-|------|------|
-| `cmd` | 입력한 명령어가 정규식 패턴과 일치하는지 확인 |
-| `tab` | AP↔DB 서버 탭을 올바른 순서로 전환했는지 확인 |
-| `state` | SAP/HANA 기동 상태 변수가 목표값에 도달했는지 확인 |
+| Type | Validates |
+|------|-----------|
+| `cmd` | 입력 명령어 → 정규식 매칭 |
+| `tab` | AP↔DB 탭 전환 순서 |
+| `server` | 특정 서버(ap1/ap2/db1/db2) 선택 |
+| `state` | sapOn/dbOn 상태 변수 목표값 도달 |
 
 ---
 
-## 실행 방법
-
-별도 설치 없이 파일을 열면 바로 실행됩니다.
+## Run Locally
 
 ```bash
-# 로컬에서 열기
-open index.html       # macOS
-start index.html      # Windows
+# Option 1 — just open the file
+open index.html          # macOS
+start index.html         # Windows
 
-# 로컬 웹서버로 실행 (권장 — 퀴즈 진도 저장 안정화)
+# Option 2 — local web server (recommended for localStorage stability)
 python3 -m http.server 8080
-# → 브라우저에서 http://localhost:8080 접속
+# → http://localhost:8080
 ```
 
-GitHub Pages, S3 정적 호스팅 등에 `index.html` 파일 하나만 업로드해도 배포됩니다.
+No npm install. No build step. No backend. The entire app is `index.html`.
 
 ---
 
-## 기술 스택
+## Development Methodology — AI-Native Workflow
 
-- 순수 HTML + Vanilla JavaScript (외부 라이브러리 없음)
-- 단일 파일 (`index.html`) — 빌드 도구, npm 불필요
-- 브라우저만 있으면 어디서나 실행 가능
+This project is developed with a **structured multi-agent workflow** using Claude Code as the orchestrator and Codex as the reviewer.
+
+```
+User Request
+    │
+    ▼
+팀장 (Team Lead — Claude Code)
+    ├── Planner agent  →  docs/scenarios/
+    ├── Searcher agent →  docs/references/
+    └── Developer agent → index.html
+                              │
+                              ▼
+                    Codex PR Review (P0/P1 must fix)
+                              │
+                              ▼
+                         main branch
+```
+
+### Agent Roles
+
+| Role | Responsibility | Output |
+|------|---------------|--------|
+| **Team Lead** (Claude Code) | Orchestration, PR creation, Codex review response | — |
+| **Planner** | Scenario design, learning objective definition | `docs/scenarios/` |
+| **Searcher** | SAP/SUSE official doc collection, real command output samples | `docs/references/` |
+| **Developer** | `index.html` implementation (command handlers, FS/FILES data) | `index.html` |
+
+### Why This Matters
+
+- **CLAUDE.md** — project-level instructions that persist across sessions, defining agent roles, constraints, and architecture decisions
+- **SAVEPOINT.md** — session continuity checkpoint: new sessions restore full context from this file
+- **Codex integration** — every PR goes through `codex review`; P0/P1 comments block merge
+- **Memory system** — user preferences and project decisions persist across Claude Code sessions via structured memory files
+
+This workflow demonstrates how AI agents can maintain coherent, long-running engineering projects across multiple sessions with proper context management.
 
 ---
 
-## 버전 이력
+## Contribution
 
-| 버전 | 날짜 | 내용 |
-|------|------|------|
-| v1 | 2026-05-07 | MVP: SAP 기본 명령어 15개, 기본 파일시스템 |
-| v2 | 2026-05-07 | grep/tail -f/find/vi/less/netstat/lsof 추가, 파이프 실제 동작, dpmon/sm50 추가 |
-| v3 | 2026-05-08 | DB 서버 탭 추가 (HANA), sapcontrol AP/DB 통합, AP↔DB 연계 시뮬레이션 |
-| v4 | 2026-05-13 | 퀴즈 시스템 (77개 시나리오, 단계별/자유 모드), find -size/-mtime, ping, du, systemctl 추가 |
+실제 SAP 환경과 다른 출력값·개선 아이디어가 있다면 Issue 또는 PR로 알려주세요.
 
----
+특히 실환경 검수가 필요한 항목:
 
-## 기여 / 개선
-
-실제 SAP 환경과 다른 출력값이나 개선 아이디어가 있다면 Issue 또는 PR로 알려주세요.  
-특히 아래 항목은 실환경 검수가 필요합니다:
-
-- `sapcontrol GetProcessList` 컬럼 순서 및 정확한 서비스명
+- `sapcontrol GetProcessList` 정확한 컬럼 순서 및 서비스명
 - `dpmon` 컬럼 레이아웃
-- HANA trace 파일 메시지 포맷
-- `startsap` / `stopsap` 출력 메시지 (커널 버전별)
+- HANA trace 파일 메시지 포맷 (`alert_*.trc`, `nameserver_*.trc`)
+- `startsap` / `stopsap` 출력 메시지 (Kernel 793 기준)
+- `hdbnsutil -sr_state` 출력 포맷 (SYNC / ASYNC 구분)
 
 ---
 
-## 라이선스
+## Version History
 
-MIT License
+| Version | Date | Highlights |
+|---------|------|------------|
+| v1 | 2026-05-07 | MVP — 15 SAP commands, basic filesystem |
+| v2 | 2026-05-07 | grep/tail -f/find/vi/less/netstat, real pipe support, dpmon/sm50 |
+| v3 | 2026-05-08 | DB server tab (HANA), AP↔DB dependency simulation |
+| v0.100 | 2026-06-03 | Version management, 9 new commands, Agent architecture, Codex integration |
+| v0.100 | 2026-06-03 | HA dual-server mode (AP1/AP2/DB1/DB2), 77 quizzes, `server` step type |
+| v0.100 | 2026-06-04 | HA quiz improvements: haHint/haInstruction, 5 HA-only quizzes (82 total) |
+
+---
+
+## License
+
+MIT
