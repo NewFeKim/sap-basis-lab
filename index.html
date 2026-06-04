@@ -2993,10 +2993,10 @@ const QUIZZES=[
       {instruction:'② HANA DB를 기동하세요. (HDB 방식)',expect:{type:'cmd',pattern:/^HDB\s+start$/i},hint:'HDB start 를 입력하세요.',feedback:'HANA 기동 명령이 실행되었습니다.'},
       {instruction:'③ DB 기동 상태를 확인하세요.',expect:{type:'state',key:'dbOn',value:true},hint:'HDB start 실행 후 상태가 자동으로 RUNNING으로 전환됩니다.',feedback:'HANA DB가 RUNNING 상태입니다.'},
       {instruction:'④ AP 서버 탭으로 전환하세요.',expect:{type:'tab',value:'ap'},hint:'상단의 "AP Server (s4happ01)" 탭을 클릭하세요.',haHint:'이중화 모드: 상단의 "AP1 (s4happ01, D00)" 탭을 클릭하세요.',feedback:'AP 탭으로 전환되었습니다.'},
-      {instruction:'⑤ SAP 시스템을 기동하세요.',expect:{type:'cmd',pattern:/^startsap(\s|$)/i},hint:'startsap 를 입력하세요.',feedback:'SAP 기동 명령이 실행되었습니다.'},
+      {instruction:'⑤ SAP 시스템을 기동하세요. (sapcontrol)',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+Start(System|Wait)?(\s|$)/i},hint:'sapcontrol -nr 00 -function Start',feedback:'SAP 기동 명령이 실행되었습니다.'},
       {instruction:'⑥ SAP 기동 상태를 확인하세요. (GetProcessList)',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 00 -function GetProcessList',feedback:'프로세스 목록이 조회되었습니다.'},
     ],
-    freeform:{description:'SAP 시스템이 완전히 정지된 상태입니다.\nDB 서버(HANA)를 먼저 기동한 후, AP 서버(SAP)를 기동하여 두 시스템 모두 RUNNING 상태로 만드세요.',goalState:{sapOn:true,dbOn:true},hint:'순서: DB 탭 전환 → HDB start → AP 탭 전환 → startsap'},
+    freeform:{description:'SAP 시스템이 완전히 정지된 상태입니다.\nDB 서버(HANA)를 먼저 기동한 후, AP 서버(SAP)를 기동하여 두 시스템 모두 RUNNING 상태로 만드세요.',goalState:{sapOn:true,dbOn:true},hint:'순서: DB 탭 전환 → HDB start → AP 탭 전환 → sapcontrol -nr 00 -function Start'},
   },
   {
     id:'Q002',title:'sapcontrol로 SAP 기동',category:'A. SAP 기동/정지',difficulty:'초급',tab:'ap',
@@ -3009,26 +3009,26 @@ const QUIZZES=[
     freeform:{description:'SAP AP 인스턴스가 정지된 상태입니다.\nsapcontrol 명령어를 사용하여 SAP를 기동하고 GetProcessList로 상태를 확인하세요.',goalState:{sapOn:true},hint:'sapcontrol -nr 00 -function Start'},
   },
   {
-    id:'Q003',title:'SAP 정지 (stopsap)',category:'A. SAP 기동/정지',difficulty:'초급',tab:'ap',
-    description:'stopsap 명령어로 SAP 시스템을 정지합니다.',
+    id:'Q003',title:'sapcontrol로 SAP 정지 (StopWait)',category:'A. SAP 기동/정지',difficulty:'초급',tab:'ap',
+    description:'sapcontrol StopWait 함수로 SAP 시스템을 정지합니다.',
     initialState:{sapOn:true,dbOn:true},
     steps:[
-      {instruction:'stopsap 명령어로 SAP 시스템을 정지하세요.',expect:{type:'cmd',pattern:/^stopsap(\s|$)/i},hint:'stopsap 를 입력하세요.',feedback:'SAP 정지 명령이 실행되었습니다.'},
+      {instruction:'sapcontrol StopWait으로 SAP 시스템을 정지하세요.',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+Stop(System|Wait)?(\s|$)/i},hint:'sapcontrol -nr 00 -function StopWait',feedback:'SAP 정지 명령이 실행되었습니다.'},
       {instruction:'정지 상태를 확인하세요. (GetSystemInstanceList)',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetSystemInstanceList/i},hint:'sapcontrol -nr 00 -function GetSystemInstanceList',feedback:'인스턴스 목록이 조회되었습니다.'},
     ],
-    freeform:{description:'SAP 시스템을 완전히 정지시키세요.',goalState:{sapOn:false},hint:'stopsap 명령어를 사용하세요.'},
+    freeform:{description:'SAP 시스템을 완전히 정지시키세요.',goalState:{sapOn:false},hint:'sapcontrol -nr 00 -function StopWait'},
   },
   {
     id:'Q004',title:'정상 정지 순서 (SAP → DB)',category:'A. SAP 기동/정지',difficulty:'초급',tab:'either',
     description:'SAP 정지 후 HANA DB를 정지하는 표준 순서를 실습합니다.',
     initialState:{sapOn:true,dbOn:true},
     steps:[
-      {instruction:'① AP 서버에서 SAP를 먼저 정지하세요.',expect:{type:'cmd',pattern:/^stopsap(\s|$)/i},hint:'stopsap 명령어를 사용하세요.',feedback:'SAP 정지 명령이 실행되었습니다.'},
-      {instruction:'② SAP 정지 완료 상태를 확인하세요.',expect:{type:'state',key:'sapOn',value:false},hint:'stopsap 완료 후 자동으로 정지 상태가 됩니다.',feedback:'SAP가 정지되었습니다.'},
+      {instruction:'① AP 서버에서 sapcontrol로 SAP를 먼저 정지하세요.',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+Stop(System|Wait)?(\s|$)/i},hint:'sapcontrol -nr 00 -function StopWait',feedback:'SAP 정지 명령이 실행되었습니다.'},
+      {instruction:'② SAP 정지 완료 상태를 확인하세요.',expect:{type:'state',key:'sapOn',value:false},hint:'sapcontrol StopWait 완료 후 자동으로 정지 상태가 됩니다.',feedback:'SAP가 정지되었습니다.'},
       {instruction:'③ DB 서버 탭으로 전환하세요.',expect:{type:'tab',value:'db'},hint:'상단 DB Server 탭을 클릭하세요.',haHint:'이중화 모드: 상단의 "DB1 (s4hdb01, Primary)" 탭을 클릭하세요.',feedback:'DB 탭으로 전환되었습니다.'},
       {instruction:'④ HANA DB를 정지하세요.',expect:{type:'cmd',pattern:/^HDB\s+stop$/i},hint:'HDB stop 을 입력하세요.',feedback:'HANA 정지 명령이 실행되었습니다.'},
     ],
-    freeform:{description:'SAP 시스템 전체를 올바른 순서로 정지시키세요.\nAP(SAP)를 먼저 정지한 후, DB(HANA)를 정지해야 합니다.',goalState:{sapOn:false,dbOn:false},hint:'순서: stopsap → (AP) → HDB stop (DB 탭)'},
+    freeform:{description:'SAP 시스템 전체를 올바른 순서로 정지시키세요.\nAP(SAP)를 먼저 정지한 후, DB(HANA)를 정지해야 합니다.',goalState:{sapOn:false,dbOn:false},hint:'순서: sapcontrol -nr 00 -function StopWait → (AP) → HDB stop (DB 탭)'},
   },
   {
     id:'Q005',title:'sapcontrol로 HANA 정지',category:'A. SAP 기동/정지',difficulty:'초급',tab:'db',
@@ -3045,10 +3045,10 @@ const QUIZZES=[
     description:'DB가 정지된 상태에서 SAP 기동 시 어떤 오류가 발생하는지 확인합니다.',
     initialState:{sapOn:false,dbOn:false},
     steps:[
-      {instruction:'DB가 정지된 상태에서 SAP를 기동 시도하세요.',expect:{type:'cmd',pattern:/^startsap(\s|$)/i},hint:'startsap 를 입력하세요.',feedback:'DB 없이 기동을 시도했습니다. 오류 메시지를 확인하세요.'},
+      {instruction:'DB가 정지된 상태에서 SAP를 기동 시도하세요. (sapcontrol)',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+Start(System|Wait)?(\s|$)/i},hint:'sapcontrol -nr 00 -function Start',feedback:'DB 없이 기동을 시도했습니다. 오류 메시지를 확인하세요.'},
       {instruction:'오류 내용을 확인하고 dev_w0 트레이스를 열어보세요.',expect:{type:'cmd',pattern:/^(cat|vi|less|tail)\s+.*dev_w0/i},hint:'vi /usr/sap/S4H/D00/work/dev_w0',feedback:'Work Process 트레이스가 열렸습니다.'},
     ],
-    freeform:{description:'DB가 정지된 상태에서 SAP 기동을 시도하고, 발생하는 오류 메시지를 트레이스 파일에서 확인하세요.',goalState:{},hint:'startsap → 오류 발생 → vi /usr/sap/S4H/D00/work/dev_w0'},
+    freeform:{description:'DB가 정지된 상태에서 SAP 기동을 시도하고, 발생하는 오류 메시지를 트레이스 파일에서 확인하세요.',goalState:{},hint:'sapcontrol -nr 00 -function Start → 오류 발생 → vi /usr/sap/S4H/D00/work/dev_w0'},
   },
 
   // ── B. 프로세스 모니터링 ───────────────────────
@@ -3710,13 +3710,13 @@ const QUIZZES=[
     description:'SAP 기동 실패 후 트레이스 파일을 분석하는 흐름을 실습합니다.',
     initialState:{sapOn:false,dbOn:false},
     steps:[
-      {instruction:'① SAP 기동을 시도하세요. (실패할 것입니다)',expect:{type:'cmd',pattern:/^startsap(\s|$)/i},hint:'startsap — DB 없이 기동 시도',feedback:'기동 실패 오류가 발생했습니다.'},
+      {instruction:'① SAP 기동을 시도하세요. (실패할 것입니다)',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+Start(System|Wait)?(\s|$)/i},hint:'sapcontrol -nr 00 -function Start — DB 없이 기동 시도',feedback:'기동 실패 오류가 발생했습니다.'},
       {instruction:'② dev_w0에서 ERROR를 grep으로 확인하세요.',expect:{type:'cmd',pattern:/grep\s+.*ERROR\s+.*dev_w0/i},hint:'grep ERROR /usr/sap/S4H/D00/work/dev_w0',feedback:'오류 원인이 확인되었습니다.'},
       {instruction:'③ R3trans -d로 DB 연결 상태를 테스트하세요.',expect:{type:'cmd',pattern:/^R3trans\s+-d$/i},hint:'R3trans -d — DB 연결 실패 확인',feedback:'DB 연결이 실패했습니다.'},
       {instruction:'④ ping으로 s4hdb01 네트워크 연결을 확인하세요.',expect:{type:'cmd',pattern:/^ping\s+.*s4hdb01/i},hint:'ping -c 4 s4hdb01',feedback:'네트워크는 정상입니다.'},
       {instruction:'⑤ DB 서버 탭으로 전환하여 DB를 기동하세요.',expect:{type:'tab',value:'db'},hint:'상단 DB Server 탭으로 이동 후 HDB start',haHint:'이중화 모드: DB1 (s4hdb01, Primary) 탭으로 이동 후 HDB start',feedback:'DB 서버로 이동했습니다.'},
     ],
-    freeform:{description:'SAP 기동 실패 시 트러블슈팅:\n1. 기동 시도 → 오류 확인\n2. dev_w0 grep ERROR\n3. R3trans -d DB 연결 확인\n4. ping 네트워크 확인\n5. DB 기동 후 재시도',goalState:{},hint:'startsap → grep ERROR dev_w0 → R3trans -d → ping s4hdb01 → (DB 탭) HDB start'},
+    freeform:{description:'SAP 기동 실패 시 트러블슈팅:\n1. 기동 시도 → 오류 확인\n2. dev_w0 grep ERROR\n3. R3trans -d DB 연결 확인\n4. ping 네트워크 확인\n5. DB 기동 후 재시도',goalState:{},hint:'sapcontrol -nr 00 -function Start → grep ERROR dev_w0 → R3trans -d → ping s4hdb01 → (DB 탭) HDB start'},
   },
   {
     id:'Q074',title:'HANA 재기동 후 AP 복구',category:'P. 종합 시나리오',difficulty:'고급',tab:'either',
@@ -3729,7 +3729,7 @@ const QUIZZES=[
       {instruction:'④ HANA 기동 완료를 확인하세요. (GetProcessList)',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 00 -function GetProcessList',feedback:'HANA 서비스가 모두 GREEN입니다.'},
       {instruction:'⑤ AP 서버로 전환하여 SAP를 기동하세요.',expect:{type:'tab',value:'ap'},hint:'AP 탭으로 전환',haHint:'이중화 모드: AP1 (s4happ01, D00) 탭으로 전환',feedback:'AP 서버로 전환되었습니다.'},
     ],
-    freeform:{description:'HANA와 SAP 모두 정지된 상태에서 전체 시스템을 복구하세요.',goalState:{sapOn:true,dbOn:true},hint:'DB 탭 → HDB start → (확인) → AP 탭 → startsap'},
+    freeform:{description:'HANA와 SAP 모두 정지된 상태에서 전체 시스템을 복구하세요.',goalState:{sapOn:true,dbOn:true},hint:'DB 탭 → HDB start → (확인) → AP 탭 → sapcontrol -nr 00 -function Start'},
   },
   {
     id:'Q075',title:'전송 요청 확인 및 R3trans 테스트',category:'P. 종합 시나리오',difficulty:'중급',tab:'ap',
@@ -3810,10 +3810,10 @@ const QUIZZES=[
     steps:[
       {instruction:'① AP2 서버(s4happ02)로 전환하세요.',expect:{type:'server',value:'ap2'},hint:'이중화 모드 상단의 "AP2 (s4happ02)" 탭을 클릭하세요.',feedback:'AP2 서버로 전환되었습니다.'},
       {instruction:'② GetProcessList로 현재 AP2 프로세스 상태를 확인하세요.',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 01 -function GetProcessList  (AP2 인스턴스 번호는 01)',feedback:'AP2 프로세스 목록이 조회되었습니다.'},
-      {instruction:'③ AP2에서 SAP를 기동하세요.',expect:{type:'cmd',pattern:/^startsap(\s|$)/i},hint:'startsap',feedback:'AP2 SAP 기동 명령이 실행되었습니다.'},
+      {instruction:'③ AP2에서 SAP를 기동하세요. (인스턴스 번호 01)',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+Start(System|Wait)?(\s|$)/i},hint:'sapcontrol -nr 01 -function Start  (AP2 인스턴스 번호는 01)',feedback:'AP2 SAP 기동 명령이 실행되었습니다.'},
       {instruction:'④ 기동 완료 후 GetProcessList로 상태를 재확인하세요.',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 01 -function GetProcessList',feedback:'AP2 SAP가 GREEN 상태로 기동되었습니다.'},
     ],
-    freeform:{description:'AP2(s4happ02, D01) 서버에서 SAP를 기동하고 상태를 확인하세요.\nAP2 인스턴스 번호는 01 입니다.',goalState:{sapOn:true},hint:'AP2 탭 → sapcontrol -nr 01 -function GetProcessList → startsap → (확인)'},
+    freeform:{description:'AP2(s4happ02, D01) 서버에서 SAP를 기동하고 상태를 확인하세요.\nAP2 인스턴스 번호는 01 입니다.',goalState:{sapOn:true},hint:'AP2 탭 → sapcontrol -nr 01 -function GetProcessList → sapcontrol -nr 01 -function Start → (확인)'},
   },
   {
     id:'HA005',title:'전체 HA 시스템 점검 루틴',category:'Q. HA 이중화',difficulty:'중급',tab:'either',haOnly:true,
