@@ -2,7 +2,7 @@
 
 > A browser-based OS-level terminal simulator for SAP Basis engineers — built entirely with Vanilla JS, zero dependencies, deployed as a single HTML file.
 
-**[Live Demo →](https://newfekim.github.io/sap-bc-terminal/)** &nbsp;|&nbsp; Built with [Claude Code](https://claude.ai/code) + [Codex](https://openai.com/codex)
+**[Live Demo →](https://newfekim.github.io/sap-bc-terminal/)** &nbsp;|&nbsp; Built with [Claude Code](https://claude.ai/code) · Maintained by [@NewFeKim](https://github.com/NewFeKim)
 
 ---
 
@@ -187,43 +187,44 @@ No npm install. No build step. No backend. The entire app is `index.html`.
 
 ---
 
-## Development Methodology — AI-Native Workflow
+## Development Process — AI-Assisted Maintainership
 
-This project is developed with a **structured multi-agent workflow** using Claude Code as the orchestrator and Codex as the reviewer.
+This project is maintained using a **structured multi-agent workflow** with Claude Code as orchestrator. The maintainer's role is to define architecture, set quality gates, and guide agents — not to write every line of code manually.
 
 ```
-User Request
+Maintainer Request
     │
     ▼
-팀장 (Team Lead — Claude Code)
-    ├── Planner agent  →  docs/scenarios/
-    ├── Searcher agent →  docs/references/
-    └── Developer agent → index.html
-                              │
-                              ▼
-                    Codex PR Review (P0/P1 must fix)
-                              │
-                              ▼
-                         main branch
+Team Lead (Claude Code — orchestrator)
+    ├── Planner agent   →  docs/scenarios/    (scenario & learning design)
+    ├── Searcher agent  →  docs/references/   (SAP/SUSE doc research)
+    └── Developer agent →  index.html         (implementation)
+                               │
+                               ▼
+                    Codex PR Review (P0/P1 block merge)
+                               │
+                               ▼
+                          main branch
 ```
 
-### Agent Roles
+### What the Maintainer Owns
 
-| Role | Responsibility | Output |
-|------|---------------|--------|
-| **Team Lead** (Claude Code) | Orchestration, PR creation, Codex review response | — |
-| **Planner** | Scenario design, learning objective definition | `docs/scenarios/` |
-| **Searcher** | SAP/SUSE official doc collection, real command output samples | `docs/references/` |
-| **Developer** | `index.html` implementation (command handlers, FS/FILES data) | `index.html` |
+| Artifact | Purpose |
+|----------|---------|
+| `CLAUDE.md` | Project constitution — agent roles, constraints, architecture decisions, coding standards |
+| `SAVEPOINT.md` | Session continuity checkpoint — new sessions restore full context from this file without re-reading code |
+| `.claude/agents/*.md` | Role definitions for each sub-agent (Planner / Searcher / Developer) |
+| `AGENTS.md` | Codex reviewer instructions — P0/P1 severity definitions, review scope |
+| Memory system (`memory/`) | Cross-session user preferences and project decisions |
 
-### Why This Matters
+### Why This Workflow Demonstrates Maintainership
 
-- **CLAUDE.md** — project-level instructions that persist across sessions, defining agent roles, constraints, and architecture decisions
-- **SAVEPOINT.md** — session continuity checkpoint: new sessions restore full context from this file
-- **Codex integration** — every PR goes through `codex review`; P0/P1 comments block merge
-- **Memory system** — user preferences and project decisions persist across Claude Code sessions via structured memory files
+- **Context management across sessions** — CLAUDE.md + SAVEPOINT.md allow any new session to resume without history, the same way a maintainer onboards new contributors
+- **Quality gates** — Codex review on every PR; P0/P1 findings are blocking; the maintainer defines what P0 means
+- **Agent delegation** — maintainer decides *what* to build and *why*; agents implement; maintainer reviews and merges
+- **Architecture ownership** — single-file constraint, zero-dependency rule, HA state model — all defined in CLAUDE.md and enforced across sessions
 
-This workflow demonstrates how AI agents can maintain coherent, long-running engineering projects across multiple sessions with proper context management.
+This is a practical demonstration of **AI-assisted open-source maintainership**: one person maintaining a non-trivial codebase with AI agents handling implementation details, while the human maintains architectural coherence and quality standards.
 
 ---
 
