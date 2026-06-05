@@ -625,7 +625,7 @@ const FS_DB={
   '/usr/sap':[SID,'hostctrl'],
   '/usr/sap/S4H':['HDB00','SYS'],
   '/usr/sap/S4H/HDB00':['exe','work','trace','backup'],
-  '/usr/sap/S4H/HDB00/exe':['hdbdaemon','hdbsql','hdbcons','hdbbackupdiag','hdbuserstore','sapstartsrv'],
+  '/usr/sap/S4H/HDB00/exe':['hdbdaemon','hdbsql','hdbcons','hdbbackupdiag','hdbbackupcheck','hdbuserstore','sapstartsrv'],
   '/usr/sap/S4H/HDB00/work':[],
   '/usr/sap/S4H/HDB00/trace':['alert_s4hdb01.trc','nameserver_s4hdb01.30001.000.trc','indexserver_s4hdb01.30003.000.trc','backup.log','daemon.trc'],
   '/usr/sap/S4H/HDB00/backup':['data','log'],
@@ -1168,8 +1168,9 @@ const CMDS={
         '    hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_SYSTEM_OVERVIEW"',
         '',
         '  [HANA 진단]',
-        '    hdbcons "replication info"',
+        '    hdbcons "replication info"  (⚠ 전문가 전용)',
         '    hdbbackupdiag --check',
+        '    hdbbackupcheck <backup-prefix>',
         '',
         '  [HANA 사용자 스토어]',
         '    hdbuserstore list',
@@ -2222,6 +2223,7 @@ const CMDS={
     const cmd=(cmdMatch?cmdMatch[1]:'').toLowerCase().trim();
 
     ap(`hdbcons version 2.00.067`,'mu');
+    ap('⚠ hdbcons는 전문가 전용 도구입니다. 프로덕션 환경에서 잘못된 명령 실행 시 시스템 장애가 발생할 수 있습니다.','wa');
 
     if(cmd.includes('replication')){
       apl([
@@ -2432,6 +2434,28 @@ const CMDS={
     ap('  Log backup age       : 9:42:16               [OK] (< 15min: YES)','su');
     ap('══════════════════════════════════════════');
     ap('Overall result: OK — all backup checks passed.','su');
+  },
+
+  hdbbackupcheck(args){
+    if(activeTab!=='db'){ap('bash: hdbbackupcheck: command not found','er');return;}
+    // 암호화 백업 무결성 검증 도구 (SAP Note 2165194)
+    const prefix=args[0]||'';
+    if(!prefix){
+      ap('사용법: hdbbackupcheck <backup-prefix>','wa');
+      ap('예)  hdbbackupcheck /hana/backup/data/COMPLETE_DATA_BACKUP_0_1','mu');
+      return;
+    }
+    apl([
+      `Checking backup: ${prefix}`,
+      '══════════════════════════════════════════',
+    ]);
+    ap('  Backup type          : complete data backup','mu');
+    ap('  Encryption           : AES-256-CBC        [OK]','su');
+    ap('  Integrity check      : CRC valid           [OK]','su');
+    ap('  Catalog consistency  : verified            [OK]','su');
+    ap('  Backup file readable : YES                 [OK]','su');
+    ap('══════════════════════════════════════════');
+    ap('Backup verification passed. Restore is possible.','su');
   },
 
   /* ── id: 사용자 UID/GID 정보 ── */
@@ -3910,7 +3934,7 @@ const QUIZZES=[
     description:'HANA 복제 상태 확인, 백업 진단, 볼륨 확인을 종합 수행합니다.',
     initialState:{sapOn:false,dbOn:true},
     steps:[
-      {instruction:'① hdbcons "replication info" 로 복제 상태를 확인하세요.',expect:{type:'cmd',pattern:/^hdbcons\s+"replication\s+info"/i},hint:'hdbcons "replication info"',feedback:'복제 상태가 확인되었습니다.'},
+      {instruction:'① hdbcons "replication info" 로 복제 상태를 확인하세요. (⚠ 전문가 전용 도구 — 프로덕션 환경에서 주의)',expect:{type:'cmd',pattern:/^hdbcons\s+"replication\s+info"/i},hint:'hdbcons "replication info"  ※ 전문가 전용 — 잘못된 명령은 시스템 장애 유발',feedback:'복제 상태가 확인되었습니다.'},
       {instruction:'② hdbbackupdiag --check 로 백업 상태를 진단하세요.',expect:{type:'cmd',pattern:/^hdbbackupdiag\s+--check$/i},hint:'hdbbackupdiag --check',feedback:'백업 진단이 완료되었습니다.'},
       {instruction:'③ M_DISK_USAGE를 조회하여 볼륨 사용량을 확인하세요.',expect:{type:'cmd',pattern:/hdbsql.*M_DISK_USAGE/i},hint:'hdbsql -i 00 -u SYSTEM -p <pw> "SELECT * FROM M_DISK_USAGE"',feedback:'볼륨 사용량이 확인되었습니다.'},
       {instruction:'④ systemctl status hdbdaemon 으로 서비스 상태를 확인하세요.',expect:{type:'cmd',pattern:/^systemctl\s+status\s+hdbdaemon$/i},hint:'systemctl status hdbdaemon',feedback:'hdbdaemon 서비스 상태가 확인되었습니다.'},
