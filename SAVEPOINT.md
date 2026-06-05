@@ -49,18 +49,19 @@
 
 ## 다음 우선순위 작업
 
-### 1순위 — Phase 3 선행 개발
-`PHASE3_DEV_TODO.md` 참조
+### 완료 확인 — Phase 3 선행 개발
+- [x] `diskFullSim` / `memLowSim` 시뮬레이션 토글 — 이미 구현 완료
+  - `df`/`free`/`top`/`vmstat` 모두 분기 구현
+  - Q053/Q054 (`diskFull:true`), Q055/Q056 (`memLow:true`) 연결 완료
+  - `QuizEngine._complete()`/`abort()` 자동 해제 구현
 
-- [ ] `diskFullSim` / `memLowSim` 시뮬레이션 토글 (`df`/`free`/`top` 출력 변경)
-
-### 2순위 — OS 명령어 보완
+### 1순위 — OS 명령어 보완
 - [ ] `telnet <host> <port>` 포트 연결성 확인
 - [ ] `journalctl -e` / `journalctl -u <service>`
 - [ ] `/etc/resolv.conf` 파일 내용 추가
 - [ ] HANA trace 파일 실제 내용 (`alert_*.trc`, `nameserver_*.trc`)
 
-### 3순위 — 퀴즈 콘텐츠 정확도
+### 2순위 — 퀴즈 콘텐츠 정확도
 - [ ] hdbcons 퀴즈/힌트에 "프로덕션 주의" 경고 문구 추가
 - [ ] hdbbackupcheck 명령어 추가 (hdbbackupdiag 보완, 암호화 백업용)
 - [ ] 실제 SAP 환경 출력 샘플 수집 (NotebookLM 워크플로우)
@@ -119,4 +120,4 @@ sap-bc-terminal/
 
 ---
 
-*갱신: 2026-06-05 / 커밋: 02502dc*
+*갱신: 2026-06-05 / 커밋: 02502dc (diskFullSim/memLowSim 이미 완료 확인)*
