@@ -61,10 +61,14 @@
 - [x] `/etc/resolv.conf` — AP/DB 양쪽 추가 (corp.com DNS)
 - [x] `alert_s4hdb01.trc` — HANA alert trace 파일 (메모리 경보 시나리오)
 
-### 1순위 — 퀴즈 콘텐츠 정확도
-- [ ] hdbcons 퀴즈/힌트에 "프로덕션 주의" 경고 문구 추가
-- [ ] hdbbackupcheck 명령어 추가 (hdbbackupdiag 보완, 암호화 백업용)
-- [ ] 실제 SAP 환경 출력 샘플 수집 (NotebookLM 워크플로우)
+### 완료 — 퀴즈 콘텐츠 정확도 (커밋 65cd124)
+- [x] hdbcons 실행/퀴즈 힌트에 "프로덕션 주의" 경고 문구 추가
+- [x] hdbbackupcheck 명령어 추가 (암호화 백업 무결성 검증, SAP Note 2165194)
+
+### 1순위 — 실제 SAP 환경 출력 샘플 수집
+- [ ] NotebookLM 워크플로우 통해 실제 명령어 출력 샘플 확보
+  - 대상: sapcontrol GetProcessList, hdbnsutil -sr_state, tp showbuffer 등
+  - 방법: 서칭자 서브에이전트 → docs/references/ 저장 → index.html 반영
 
 
 ---
@@ -121,4 +125,4 @@ sap-bc-terminal/
 
 ---
 
-*갱신: 2026-06-05 / 커밋: 3b5efd7*
+*갱신: 2026-06-05 / 커밋: 65cd124*
