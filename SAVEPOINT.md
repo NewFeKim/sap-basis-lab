@@ -55,16 +55,17 @@
   - Q053/Q054 (`diskFull:true`), Q055/Q056 (`memLow:true`) 연결 완료
   - `QuizEngine._complete()`/`abort()` 자동 해제 구현
 
-### 1순위 — OS 명령어 보완
-- [ ] `telnet <host> <port>` 포트 연결성 확인
-- [ ] `journalctl -e` / `journalctl -u <service>`
-- [ ] `/etc/resolv.conf` 파일 내용 추가
-- [ ] HANA trace 파일 실제 내용 (`alert_*.trc`, `nameserver_*.trc`)
+### 완료 — OS 명령어 보완 (커밋 3b5efd7)
+- [x] `telnet <host> <port>` — sapOn/dbOn 연동 포트 연결성 확인
+- [x] `journalctl -e` / `journalctl -u <service>` — AP/DB 탭별 systemd 저널
+- [x] `/etc/resolv.conf` — AP/DB 양쪽 추가 (corp.com DNS)
+- [x] `alert_s4hdb01.trc` — HANA alert trace 파일 (메모리 경보 시나리오)
 
-### 2순위 — 퀴즈 콘텐츠 정확도
+### 1순위 — 퀴즈 콘텐츠 정확도
 - [ ] hdbcons 퀴즈/힌트에 "프로덕션 주의" 경고 문구 추가
 - [ ] hdbbackupcheck 명령어 추가 (hdbbackupdiag 보완, 암호화 백업용)
 - [ ] 실제 SAP 환경 출력 샘플 수집 (NotebookLM 워크플로우)
+
 
 ---
 
@@ -120,4 +121,4 @@ sap-bc-terminal/
 
 ---
 
-*갱신: 2026-06-05 / 커밋: 02502dc (diskFullSim/memLowSim 이미 완료 확인)*
+*갱신: 2026-06-05 / 커밋: 3b5efd7*
