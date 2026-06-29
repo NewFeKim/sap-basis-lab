@@ -44,6 +44,29 @@ SAP Basis 신입 컨설턴트를 위한 **웹 기반 OS단 교육용 터미널 �
 
 ---
 
+## 빌드 / 실행 / 검증
+
+빌드 단계 없음. `index.html` 단일 파일을 열면 즉시 실행된다.
+
+```bash
+# 로컬 실행 (localStorage 안정성을 위해 http 서버 권장)
+python -m http.server 8080          # → http://localhost:8080  (VSCode launch.json 포트와 동일)
+
+# 스모크 테스트 (48개 구조 검사: DOM ID / JS 심볼 / 명령어 / HA / 퀴즈 / 다크테마)
+python .claude/skills/run-sap-bc-terminal/smoke.py          # 기본 포트 19080
+python .claude/skills/run-sap-bc-terminal/smoke.py 19080    # 포트 지정
+
+# 정적 리뷰 (Codex) — JS 구문/태그 균형/퀴즈 개수/빈 goalState/파이프 검증 등
+.\tools\codex-review.ps1 -ExpectedQuizCount 82      # PowerShell
+# 결과: .ai-collab/CODEX_REVIEW_REPORT.md  (exit 0=clean, 1=Low/Med, 2=High)
+```
+
+> **주의:** `codex-review.ps1`의 `-ExpectedQuizCount` 기본값은 77이나 현재 퀴즈는 82개다.
+> 기본값으로 실행하면 개수 불일치(Medium)가 보고되므로 **반드시 `82`를 전달**한다.
+> 테스트 프레임워크(jest 등)는 없음 — 검증은 위 smoke + codex-review 2종이 전부.
+
+---
+
 ## 현재 버전: v0.100
 
 > **세이브포인트 → `SAVEPOINT.md` 참조** (세션 재개 시 이 파일부터 읽을 것)
@@ -57,6 +80,26 @@ SAP Basis 신입 컨설턴트를 위한 **웹 기반 OS단 교육용 터미널 �
 - sapOn/dbOn 상태변수 기동/정지 연동
 - APP_VERSION 상수 기반 버전 표시 (v0.100)
 
+**HA 이중화 모드** (`haMode` 토글)
+- 단일 모드 ↔ 이중화 모드 전환 (`enableHa()` / `switchServer()`)
+- 4서버 토폴로지: AP1(s4happ01)/AP2(s4happ02)/DB1(s4hdb01)/DB2(s4hdb02)
+- 서버별 독립 상태 변수: `ap1On`/`ap2On`/`db1On`/`db2On`, `activeServer`
+- HANA System Replication 시뮬레이션 (Primary/Secondary, SYNC/ASYNC)
+
+**퀴즈 시스템** (Phase 3 — 구현 완료)
+- `QuizEngine` / `QuizUI` / `QuizStorage` / `QUIZZES[]` (총 82개, 단일 77 + HA 전용 5)
+- 단계별 모드(순차 안내+힌트) / 자유 모드(`goalState` 목표 또는 빈 객체=자유 탐색)
+- step type 4종: `cmd`(정규식) / `tab`(AP↔DB) / `server`(ap1~db2) / `state`(sapOn/dbOn 목표)
+- `completeManually()` — 빈 goalState 시나리오용 수동 완료 버튼
+- localStorage 진도 저장 (`QuizStorage._save()` try/catch 가드)
+- `diskFullSim` / `memLowSim` 시뮬 토글 — df/free/top 출력을 장애 상태로 변경 (퀴즈 initialState 연동)
+
+**UI**
+- 반응형 white-tone 레이아웃 (터미널만 다크), `100dvh` 기반 높이
+- 폰트 크기 조절 버튼 `adjFs()` (FS_MIN=13~FS_MAX=20, localStorage `termFs`)
+- GitHub Star 버튼 (우측 상단)
+- GitHub Pages 배포 (단일 파일, https://newfekim.github.io/sap-bc-terminal/)
+
 **SAP 명령어**
 startsap, stopsap, sapcontrol (GetProcessList/GetSystemInstanceList/GetAlertTree/ParameterValue/Start/Stop/StopWait/ABAPGetWPTable 등), dpmon, sm50, R3trans, lgtst, disp+work -version/-V, tp (showbuffer/addtobuffer/importall/count/connect, 세션 내 버퍼 유지)
 
@@ -68,17 +111,14 @@ ls, cd, cat, vi/vim, less/more, head, tail/-f, grep, find (-name/-type/-size/-mt
 
 ### 미구현 (다음 작업 대상)
 
-**Phase 3 선행 개발 (PHASE3_DEV_TODO.md 참조):**
-- `diskFullSim`, `memLowSim` 시뮬레이션 토글 (df/free/top 출력 변경)
-- 퀴즈 시스템: QuizEngine / QuizUI / QuizStorage / QUIZZES 77개
-
-**OS 명령어 추가 구현:**
-- `telnet <host> <port>` (포트 연결성 확인)
-- `journalctl -e`, `journalctl -u <service>` (systemd 로그)
-- `/etc/resolv.conf` 파일 내용, `/usr/sap/trans/EPS/` 디렉토리
-
 **HANA 파일시스템 확장:**
-- `alert_*.trc`, `nameserver_*.trc`, `indexserver_*.trc` 파일 내용 (현재 경로만 있고 내용 없음)
+- `nameserver_*.trc`, `indexserver_*.trc` 파일 내용 (현재 경로만 있고 내용 없음 — `alert_*.trc`는 구현 완료)
+
+**파이프 확장:**
+- 3중 이상 파이프 체인 (`cmd | grep | wc -l`) — 현재 2단계만 지원
+
+> 참고: Phase 3 퀴즈 시스템·diskFullSim/memLowSim·telnet/journalctl/resolv.conf는 모두 구현 완료됨.
+> 잔여 작업 후보는 `PHASE3_DEV_TODO.md` 및 GitHub Issue 참조.
 
 ---
 
@@ -128,6 +168,8 @@ SAVEPOINT.md   ← 프로젝트 루트 (git 추적)
   searcher.md   ← 서칭자 역할 정의 + 결과 파일 형식
   planner.md    ← 기획자 역할 정의 + 시나리오 명세 형식
   developer.md  ← 개발자 역할 정의 + 코드 구조 요약
+
+AGENTS.md       ← (프로젝트 루트) Codex 리뷰어 역할 정의 — P0/P1 심각도 기준, 리뷰 범위
 ```
 
 ### 오케스트레이션 원칙
@@ -184,6 +226,7 @@ SAVEPOINT.md   ← 프로젝트 루트 (git 추적)
 
 ### 수집 결과 파일 형식
 ```
+docs/NOTEBOOKLM_SOURCES.md         ← NotebookLM에 업로드한 SAP/SUSE 공식 소스 목록 (단일 진실 원천)
 docs/references/SEARCH_RESULTS.md  ← 서칭자가 수집한 Note번호, 링크 목록
 docs/references/CMD_<명령어명>.md   ← 확정된 명령어 출력 샘플, 옵션, 경로
 docs/scenarios/<시나리오명>.md      ← 퀴즈 시나리오 명세
@@ -205,6 +248,19 @@ docs/scenarios/<시나리오명>.md      ← 퀴즈 시나리오 명세
 ├── cwd, user                // 현재 활성 상태 (탭 전환 시 교체)
 └── hist = []                // 명령어 히스토리
 
+HA 모드 상태 변수
+├── haMode = false           // false=단일, true=이중화
+├── activeServer = 'ap1'     // 'ap1'|'ap2'|'db1'|'db2' 현재 활성 서버
+├── ap1On, ap2On             // AP 서버별 독립 기동 상태
+├── db1On, db2On             // DB 서버별 독립 기동 상태
+└── diskFullSim, memLowSim   // 장애 시뮬 토글 (df/free/top 출력 변경)
+
+퀴즈 시스템
+├── QUIZZES[]                // 82개 정의 (haOnly:true → HA 전용 5개)
+├── QuizEngine               // onCmd/onState/onTab/onServer/_checkFree/completeManually
+├── QuizUI                   // renderActive (수동완료 버튼 표시 제어 포함)
+└── QuizStorage              // localStorage 진도 (_save try/catch)
+
 데이터 객체
 ├── FS_AP{}   / FS_DB{}      // 가상 파일시스템: 경로 → 자식 목록 배열
 ├── FILES_AP{}/ FILES_DB{}   // 파일 내용: 경로 → 문자열
@@ -212,13 +268,16 @@ docs/scenarios/<시나리오명>.md      ← 퀴즈 시나리오 명세
 └── CMDS{}                   // 명령어 핸들러 테이블
 
 핵심 함수
-├── switchTab(tab)    // 탭 전환 (상태/FS/FILES/UI 일괄 교체)
-├── rc(input)         // 명령어 실행 진입점
-├── parsePipe(input)  // 파이프 파싱
-├── handleRedirect()  // 리다이렉션 처리
-├── ap(text, cls)     // 한 줄 출력 (cls: su/er/wa/in/mu)
-├── rp(path)          // 경로 resolve (상대→절대)
-└── isFile(path)      // 파일 여부 판별
+├── switchTab(tab)       // 탭 전환 (상태/FS/FILES/UI 일괄 교체)
+├── switchServer(server) // HA 서버 전환 (ap1~db2, 상태 일괄 교체 + QuizEngine.onServer)
+├── enableHa(enable)     // 단일↔이중화 모드 토글
+├── rc(input)            // 명령어 실행 진입점 (파이프 분기에서도 QuizEngine 훅 호출)
+├── parsePipe(input)     // 파이프 파싱
+├── handleRedirect()     // 리다이렉션 처리
+├── adjFs(delta)         // 터미널 폰트 크기 조절
+├── ap(text, cls)        // 한 줄 출력 (cls: su/er/wa/in/mu)
+├── rp(path)             // 경로 resolve (상대→절대)
+└── isFile(path)         // 파일 여부 판별
 ```
 
 ### 출력 색상 클래스
@@ -279,6 +338,11 @@ FS_AP['/경로'] = ['파일명', '다른파일'];
 | v3 | 2026-05-08 | DB 서버 탭 추가 (HANA), HDB/hdbsql/hdbcons/hdbbackupdiag 구현, 탭별 독립 FS/상태 |
 | v3.1 | 2026-06-03 | CLAUDE.md 개정: SAP Basis OS 업무 범위 명세, 기준 버전 S/4HANA 2023(Kernel 793)으로 고정, Agent 역할 구분, NotebookLM 워크플로우 추가 |
 | v0.100 | 2026-06-03 | 앱 버전 관리 체계 도입(APP_VERSION), 신규 명령어 9개 추가(id/groups/nslookup/iostat/disp+work/dmesg/tp/hdbnsutil), Kernel 793 배너 반영 |
+| v0.100 | 2026-06-03 | HA 이중화 모드(AP1/AP2/DB1/DB2), 퀴즈 시스템 77개, `server` step type 도입 |
+| v0.100 | 2026-06-04 | HA 퀴즈 개선: haHint/haInstruction, HA 전용 퀴즈 5개 추가(총 82개) |
+| v0.100 | 2026-06 | Phase 3 버그 4건 수정(find -size/-mtime, 자유모드 빈 goalState, 파이프 퀴즈 검증), diskFullSim/memLowSim 토글 |
+| v0.100 | 2026-06 | OS 명령어 4종(telnet/journalctl/resolv.conf/alert_*.trc), hdbcons 경고·hdbbackupcheck 추가 |
+| v0.100 | 2026-06 | UI 전면 개편: 반응형 white-tone, 폰트 크기 조절, Star 버튼, 수동 완료 버튼, GitHub Pages 배포 |
 
 ---
 
@@ -343,9 +407,11 @@ Claude는 다음을 하지 않습니다:
 
 ## Test Plan
 
-- [ ] 단위 테스트
-- [ ] 통합 테스트
-- [ ] 수동 검증
+> 단위/통합 테스트 프레임워크는 없음. 아래 2종 + 브라우저 수동 확인으로 검증한다.
+
+- [ ] 스모크 테스트 (`python .claude/skills/run-sap-bc-terminal/smoke.py`)
+- [ ] 정적 리뷰 (`.\tools\codex-review.ps1 -ExpectedQuizCount 82` → No findings)
+- [ ] 브라우저 수동 검증 (콘솔 에러 없음, 변경 동작 확인)
 - [ ] 해당 없음
 
 실행한 명령어:

@@ -1,7 +1,7 @@
 param(
   [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
   [string]$IndexPath = 'index.html',
-  [int]$ExpectedQuizCount = 77
+  [int]$ExpectedQuizCount = 82
 )
 
 $ErrorActionPreference = 'Stop'
