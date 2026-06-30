@@ -1860,7 +1860,7 @@ const CMDS={
     }
     echo();
     if(func==='GetProcessList'){
-      const wpStatus=dbOn?'GREEN':'RED';
+      const wpStatus=dbOn?'GREEN':'YELLOW'; // sapcontrol dispstatus는 GREEN/YELLOW/GRAY만 존재 — DB 미연결 시 프로세스는 기동돼 있으나 YELLOW (SAP KBA 3303514/2237021)
       const wpText=dbOn?'Running':'Waiting for DB';
       apl(['OK',
         'name, description, dispstatus, textstatus, starttime, elapsedtime, pid',
@@ -3281,7 +3281,7 @@ const QUIZZES=[
     steps:[
       {instruction:'sapcontrol -nr 00 -function GetProcessList 를 실행하세요.',expect:{type:'cmd',pattern:/sapcontrol.+-function\s+GetProcessList/i},hint:'sapcontrol -nr 00 -function GetProcessList',feedback:'HANA 프로세스 목록이 조회되었습니다.'},
     ],
-    freeform:{description:'sapcontrol GetProcessList로 HANA 서비스 상태(GREEN/RED)를 확인하세요.',goalState:{},hint:'sapcontrol -nr 00 -function GetProcessList'},
+    freeform:{description:'sapcontrol GetProcessList로 HANA 서비스 상태(GREEN/GRAY)를 확인하세요.',goalState:{},hint:'sapcontrol -nr 00 -function GetProcessList'},
   },
 
   // ── C. 파일/로그 분석 ─────────────────────────
