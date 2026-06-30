@@ -10,40 +10,37 @@
 | 항목 | 값 |
 |---|---|
 | **앱 버전** | v0.100 |
-| **main 최신 커밋** | `02502dc` fix: 퀴즈 기동/정지 명령어 startsap/stopsap → sapcontrol로 교체 |
-| **커밋 날짜** | 2026-06-05 |
+| **main 최신 작업** | dispstatus RED→YELLOW, hdbnsutil online 라인, 문서 현행화 (이번 세션) |
+| **이전 마일스톤** | `efa792b` fix(sapcontrol): GetProcessList dispstatus RED→YELLOW |
+| **갱신 날짜** | 2026-06-30 |
 | **smoke test** | 48/48 통과 (단일+HA 모드, 퀴즈엔진, HA 심볼 포함) |
+| **GitHub Pages** | 배포 중 — https://newfekim.github.io/sap-bc-terminal/ |
 
 ---
 
-## 마지막 세션에서 한 일
+## 마지막 세션에서 한 일 (2026-06-30)
 
-1. **HA 퀴즈 시스템 개선** — 커밋 `6a3946c`
-   - `{type:'server'}` 스텝 타입 추가 (QuizEngine.onServer 메서드)
-   - switchServer() → QuizEngine.onServer() 연결
-   - haOnly:true 필터링 (단일 모드 77개 / HA 모드 82개)
-   - haHint / haInstruction — HA 모드에서 힌트/안내문 자동 전환
-   - 기존 퀴즈 6개 스텝에 haHint 추가
-   - HA001~HA005 신규 퀴즈 5개 (haOnly:true, category:'Q. HA 이중화')
-   - initialState 서버 동기화 버그 수정 (db 탭에서 ap2On 오염 방지)
+1. **퀴즈 버그 수정** — 커밋 `e46b3ee`
+   - Q073/Q074: 마지막 step이 탭 전환(type:'tab')인데 instruction은 추가 명령("DB/SAP 기동")을
+     요구 → 탭 전환만으로 조기 완료되던 버그. 탭 전환과 명령 실행을 별도 step으로 분리 (각 5→6 step)
 
-2. **README 전면 개편** — 커밋 `189413a`
-   - AI-Assisted Maintainership 포지셔닝
-   - HA 토폴로지 다이어그램, 82개 퀴즈 표, step type 표
-   - CLAUDE.md/SAVEPOINT.md/AGENTS.md를 메인테이너 아티팩트로 명시
+2. **콘텐츠 정확도 — dispstatus** — 커밋 `efa792b`
+   - sapcontrol GetProcessList의 dispstatus는 GREEN/YELLOW/GRAY만 존재 (RED 비표준)
+   - DB 미연결 시 AP 프로세스 RED → YELLOW ("Running but...") · Q012 설명 (GREEN/RED)→(GREEN/GRAY)
+   - 근거: SAP KBA 3303514 / 2237021 / 2610358, help.sap.com SAPControl 문서
 
-3. **퀴즈 sapcontrol 정확도 수정** — 커밋 `02502dc`
-   - Q001/Q003/Q004/Q006/Q073/Q074/HA004의 startsap/stopsap → sapcontrol
-   - Q003 제목·설명 전체를 StopWait 기준으로 재작성
-   - HA004: `sapcontrol -nr 01 -function Start` (인스턴스 번호 01 명시)
+3. **콘텐츠 정확도 — hdbnsutil** — (이번 커밋)
+   - `-sr_state` 출력 상단에 `online: true` 라인 추가 (primary/secondary), primary에 `operation mode: primary`
 
-4. **smoke test 업데이트** — 34→48 체크항목
-   - HA 모드 심볼 (haMode/activeServer/switchServer/ap1On 등) 추가
-   - 퀴즈엔진 심볼 (QUIZZES/QuizEngine/QuizUI/QuizStorage/haOnly/haHint/onServer) 추가
-   - hdbnsutil, disp+work, tp 명령어 체크 추가
-   - mode-single, mode-ha DOM ID 추가
+4. **문서 현행화** — 커밋 `3499ca8` + (이번 커밋)
+   - CLAUDE.md: HA 모드/퀴즈 시스템/빌드·검증 명령어 섹션 추가, "미구현" 오류 정정
+   - codex-review.ps1 ExpectedQuizCount 기본값 77→82
+   - README 검수 현황 표(✅/⬜) + 근거 Note 번호 명기
+   - 다단계 파이프(3중 이상)는 이미 동작함을 확인 → "미구현" 오류 정정
 
-5. **브랜치 정리** — 머지 완료된 4개 브랜치 삭제 (로컬+GitHub)
+5. **MCP 도구 추가 활용** — `sap-cloud-alm` MCP로 SAP Notes/KBA 검색 가능
+   - 시뮬레이터 출력 검수에 활용 (본문은 요약 발췌까지 / 공식문서는 help.sap.com 직접 조회)
+   - 메모리 기록: `sap-cloud-alm-mcp`
 
 ---
 
@@ -122,7 +119,8 @@ sap-bc-terminal/
 | v0.100 | 2026-06-03 | HA 이중화 구조 (AP1/AP2/DB1/DB2), 퀴즈 77개 |
 | v0.100 | 2026-06-04 | HA 퀴즈 개선 (haHint/onServer), HA001~HA005 신규 (82개 총) |
 | v0.100 | 2026-06-05 | 퀴즈 sapcontrol 정확도, README 메인테이너 리브랜딩, smoke test 48체크 |
+| v0.100 | 2026-06-30 | Q073/Q074 조기완료 버그픽스, dispstatus RED→YELLOW, hdbnsutil online 라인, 문서 현행화 |
 
 ---
 
-*갱신: 2026-06-05 / 커밋: 65cd124*
+*갱신: 2026-06-30 / 마일스톤 커밋: efa792b*

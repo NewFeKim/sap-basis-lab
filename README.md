@@ -232,13 +232,14 @@ This is a practical demonstration of **AI-assisted open-source maintainership**:
 
 실제 SAP 환경과 다른 출력값·개선 아이디어가 있다면 Issue 또는 PR로 알려주세요.
 
-특히 실환경 검수가 필요한 항목:
+실환경 검수 현황 (SAP Notes/KBA 기반):
 
-- `sapcontrol GetProcessList` 정확한 컬럼 순서 및 서비스명
-- `dpmon` 컬럼 레이아웃
-- HANA trace 파일 메시지 포맷 (`alert_*.trc`, `nameserver_*.trc`)
-- `startsap` / `stopsap` 출력 메시지 (Kernel 793 기준)
-- `hdbnsutil -sr_state` 출력 포맷 (SYNC / ASYNC 구분)
+- ✅ `sapcontrol GetProcessList` 컬럼 순서 — 검증 완료 (`name, description, dispstatus, textstatus, starttime, elapsedtime, pid` · KBA 2237021 / 2610358)
+- ✅ `dispstatus` 값 — GREEN/YELLOW/GRAY로 교정 (RED는 비표준 · KBA 3303514 / 2237021)
+- ✅ `startsap` / `stopsap` — deprecated 안내 출력 (SAP Note 1763593 / 809477, sapcontrol 권장)
+- ⬜ `dpmon` 컬럼 레이아웃 — 추가 검수 필요 (직접 Note 근거 부족)
+- ⬜ `hdbnsutil -sr_state` 세부 라인 — HANA 버전별 차이 확인 가능
+- ⬜ HANA trace 파일 메시지 포맷 (`alert_*.trc`, `nameserver_*.trc`) — 정밀 검수 여지
 
 ---
 

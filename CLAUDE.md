@@ -111,13 +111,15 @@ ls, cd, cat, vi/vim, less/more, head, tail/-f, grep, find (-name/-type/-size/-mt
 
 ### 미구현 (다음 작업 대상)
 
-**HANA 파일시스템 확장:**
-- `nameserver_*.trc`, `indexserver_*.trc` 파일 내용 (현재 경로만 있고 내용 없음 — `alert_*.trc`는 구현 완료)
+**콘텐츠 정확도(실환경 검수) 후보:**
+- `dpmon` 컬럼 레이아웃 — 직접 SAP Note 근거가 약해 추가 검수 필요
+- `hdbnsutil -sr_state` 세부 라인 — HANA 버전별 차이 추가 확인 가능
 
-**파이프 확장:**
-- 3중 이상 파이프 체인 (`cmd | grep | wc -l`) — 현재 2단계만 지원
-
-> 참고: Phase 3 퀴즈 시스템·diskFullSim/memLowSim·telnet/journalctl/resolv.conf는 모두 구현 완료됨.
+> 참고: 아래는 모두 **구현 완료**됨 (과거 "미구현" 표기는 오류였음):
+> - Phase 3 퀴즈 시스템 / diskFullSim·memLowSim / telnet·journalctl·resolv.conf
+> - HANA 트레이스 파일 내용 (`alert_*.trc`/`nameserver_*.trc`/`indexserver_*.trc` 모두 내용 있음)
+> - 다단계 파이프 (`cmd | grep | wc -l` 등 3중 이상도 순차 필터링으로 동작)
+>
 > 잔여 작업 후보는 `PHASE3_DEV_TODO.md` 및 GitHub Issue 참조.
 
 ---
