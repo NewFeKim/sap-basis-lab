@@ -346,6 +346,11 @@ FS_AP['/경로'] = ['파일명', '다른파일'];
 | v0.100 | 2026-06 | OS 명령어 4종(telnet/journalctl/resolv.conf/alert_*.trc), hdbcons 경고·hdbbackupcheck 추가 |
 | v0.100 | 2026-06 | UI 전면 개편: 반응형 white-tone, 폰트 크기 조절, Star 버튼, 수동 완료 버튼, GitHub Pages 배포 |
 
+> **버전 체계 각주:** v1~v3은 초기 프로토타입 마일스톤 번호(릴리스 일자 단위)이고,
+> 2026-06-03부터 `APP_VERSION` 상수 기반 체계로 전환했다. `v0.x`는 1.0 이전 단계를 뜻하며,
+> **v1.0은 명령어 출력이 SAP 공식 문서/Note 기준으로 전면 검수 완료된 시점에 부여한다**
+> (검수 현황: README Contribution 섹션의 ✅/⬜ 목록). 새 항목 추가 시 v0.100 형식을 따를 것.
+
 ---
 
 # GitHub PR Workflow: Claude as Planner and Implementer

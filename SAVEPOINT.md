@@ -75,6 +75,7 @@
 | 결정 | 이유 |
 |---|---|
 | 단일 index.html 유지 | 배포 편의 (GitHub Pages 등 정적 호스팅) |
+| (예약) 5,000줄 도달 시 src/ 분리 + build.py 병합 검토 | 개발은 분리, 배포는 단일 파일 유지 (Python 표준lib 병합, 신규 의존성 0) — 현재 4,167줄 |
 | Vanilla JS (라이브러리 금지) | 외부 의존성 없이 파일 하나로 완결 |
 | startsap/stopsap 코드 유지 | 레거시 명령어 학습용; 단 deprecated 경고 출력 및 퀴즈는 sapcontrol 권장 |
 | tp 세션 버퍼 (`window._tpBuffer`) | addtobuffer 후 showbuffer 일관성 보장 |
@@ -120,6 +121,9 @@ sap-bc-terminal/
 | v0.100 | 2026-06-04 | HA 퀴즈 개선 (haHint/onServer), HA001~HA005 신규 (82개 총) |
 | v0.100 | 2026-06-05 | 퀴즈 sapcontrol 정확도, README 메인테이너 리브랜딩, smoke test 48체크 |
 | v0.100 | 2026-06-30 | Q073/Q074 조기완료 버그픽스, dispstatus RED→YELLOW, hdbnsutil online 라인, 문서 현행화 |
+
+> 버전 체계: v1~v3은 프로토타입 마일스톤, 2026-06-03부터 APP_VERSION(v0.x) 체계.
+> v1.0 = 출력 전면 검수 완료 시점 (상세: CLAUDE.md 변경 이력 각주)
 
 ---
 

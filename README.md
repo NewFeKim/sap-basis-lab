@@ -254,6 +254,8 @@ This is a practical demonstration of **AI-assisted open-source maintainership**:
 | v0.100 | 2026-06-03 | HA dual-server mode (AP1/AP2/DB1/DB2), 77 quizzes, `server` step type |
 | v0.100 | 2026-06-04 | HA quiz improvements: haHint/haInstruction, 5 HA-only quizzes (82 total) |
 
+> **Versioning note:** v1–v3 were prototype milestones (numbered per release day). Starting 2026-06-03 the project adopted the `APP_VERSION` scheme — `v0.x` marks the pre-1.0 phase; **v1.0 is reserved for the release whose command outputs have been fully audited against official SAP documentation** (see the verification checklist in [Contribution](#contribution)).
+
 ---
 
 ## License
