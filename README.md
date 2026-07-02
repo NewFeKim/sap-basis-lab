@@ -1,6 +1,6 @@
 # SAP Basis Training Terminal
 
-> A browser-based OS-level terminal simulator for SAP Basis engineers — built entirely with Vanilla JS, zero dependencies, deployed as a single HTML file.
+> A browser-based OS-level terminal simulator for SAP Basis engineers — built entirely with Vanilla JS, zero dependencies. Maintained as multi-file source, also available as a [single portable HTML file](#single-file-distribution).
 
 **[Live Demo →](https://newfekim.github.io/sap-basis-lab/)** &nbsp;|&nbsp; Built with [Claude Code](https://claude.ai/code) · Maintained by [@NewFeKim](https://github.com/NewFeKim)
 
@@ -18,6 +18,34 @@
 - 82개 퀴즈 시나리오 (단계별 / 자유 모드, HA 전용 퀴즈 포함)
 
 > **Security note:** All hostnames, IPs, credentials in this project are dummy data for educational purposes. No real credentials are included.
+
+---
+
+## Single-File Distribution
+
+이 프로젝트는 **투트랙 구조**입니다 — 유지보수는 다중 파일(`index.html` + `css/` + `js/`)로 하고,
+파일 하나만 필요한 사람을 위해 병합된 단일 파일(`dist/index.html`)도 함께 배포합니다.
+
+**그냥 파일 하나만 받아서 열어보고 싶다면:**
+
+**[⬇ dist/index.html 다운로드](https://raw.githubusercontent.com/NewFeKim/sap-basis-lab/main/dist/index.html)** — 링크 우클릭 → "다른 이름으로 저장"
+
+```bash
+curl -o index.html https://raw.githubusercontent.com/NewFeKim/sap-basis-lab/main/dist/index.html
+```
+
+받은 파일을 더블클릭하거나 `start index.html`(Windows) / `open index.html`(macOS)로 열면 끝. 서버·설치 과정 없음
+(단, localStorage 진도 저장 안정성을 위해 로컬 웹서버 실행을 권장 — [Run Locally](#run-locally) 참고).
+
+| | 다중 파일 메인 (`index.html`+`css/`+`js/`) | 단일 파일 (`dist/index.html`) |
+|---|---|---|
+| 대상 | 기여자, GitHub Pages, 로컬 개발 | 파일 하나만 필요한 모든 사용자 |
+| 동작 | 동일 — `dist/index.html`은 다중 파일 소스를 그대로 병합한 바이트 동일 산출물 | 동일 |
+| 직접 수정 | 가능 — 이게 소스 | **불가** — `tools/build.py`가 생성. 직접 고쳐도 다음 빌드에서 사라짐 |
+| 최신 상태 유지 | 해당 없음 | 소스 변경 시 `python tools/build.py`로 재생성. `python tools/build.py --check`로 최신 여부만 검증 가능 (exit 1 = stale) |
+
+> 두 트랙의 동작은 100% 동일합니다 — `dist/index.html`은 `css/`+`js/*.js`를 인라인만 한 결과물이라
+> 로직 차이가 없습니다.
 
 ---
 
@@ -173,19 +201,19 @@ systemctl status / uname / env / date / history / clear
 
 ## Run Locally
 
+Cloning the repo (developer / contributor workflow — for just grabbing one file, see [Single-File Distribution](#single-file-distribution) above):
+
 ```bash
-# Option 1 — multi-file main (recommended)
-python3 -m http.server 8080        # repo root → http://localhost:8080
+git clone https://github.com/NewFeKim/sap-basis-lab.git
+cd sap-basis-lab
+python3 -m http.server 8080        # → http://localhost:8080  (multi-file main)
 
-# Option 2 — single file: grab dist/index.html and just open it
-start dist/index.html              # Windows
-open dist/index.html               # macOS
-
-# Rebuild the single file after editing source (Python stdlib only)
-python3 tools/build.py             # css/ + js/ → dist/index.html
+# after editing css/*.css or js/*.js, rebuild the single-file distribution
+python3 tools/build.py             # → dist/index.html
+python3 tools/build.py --check     # verify dist/index.html isn't stale (exit 1 if so)
 ```
 
-No npm install. No bundler. No backend. The single-file build is byte-equivalent to inlining every source file.
+No npm install. No bundler. No backend.
 
 ---
 
