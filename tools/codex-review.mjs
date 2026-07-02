@@ -20,6 +20,24 @@ function lineOf(lines, pattern) {
   return idx >= 0 ? idx + 1 : 0;
 }
 
+// fullSource(모든 파일을 이어붙인 텍스트)의 전역 줄번호를, 실제로 그 줄이 속한
+// 파일명과 그 파일 안에서의 줄번호로 되돌린다. (다중 파일 구조에서 index.html로만
+// 잘못 보고되는 것을 방지)
+function makeLocator(segments) {
+  return (globalLine) => {
+    if (globalLine <= 0) return { file: segments[0].file, line: 0 };
+    let offset = 0;
+    for (const seg of segments) {
+      if (globalLine <= offset + seg.lineCount) {
+        return { file: seg.file, line: globalLine - offset };
+      }
+      offset += seg.lineCount;
+    }
+    const last = segments[segments.length - 1];
+    return { file: last.file, line: globalLine - offset + last.lineCount };
+  };
+}
+
 function countMatches(text, re) {
   return [...text.matchAll(re)].length;
 }
@@ -29,15 +47,20 @@ function extractInlineScripts(html) {
 }
 
 // 다중 파일 구조: <script src="js/..."> 로컬 참조를 읽어 소스에 포함
+// refs와 contents를 같은 순서로 함께 반환 (파일:줄번호 역매핑에 필요)
 function extractExternalScripts(html, rootDir) {
-  const out = [];
+  const refs = [];
+  const contents = [];
   for (const match of html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)) {
     const ref = match[1];
     if (/^https?:\/\//i.test(ref)) continue;
     const full = path.join(rootDir, ref);
-    if (fs.existsSync(full)) out.push(fs.readFileSync(full, 'utf8'));
+    if (fs.existsSync(full)) {
+      refs.push(ref);
+      contents.push(fs.readFileSync(full, 'utf8'));
+    }
   }
-  return out;
+  return { refs, contents };
 }
 
 function tagBalance(html, tag) {
@@ -130,10 +153,22 @@ if (!fs.existsSync(indexFullPath)) {
   const html = fs.readFileSync(indexFullPath, 'utf8');
   const lines = html.split(/\r?\n/);
   const scripts = extractInlineScripts(html);
-  const externalScripts = extractExternalScripts(html, root);
+  const { refs: externalRefs, contents: externalScripts } = extractExternalScripts(html, root);
   // 다중/단일 파일 공통 검사용 전체 소스 (HTML + 모든 JS)
   const fullSource = [html, ...externalScripts].join('\n');
   const srcLines = fullSource.split(/\r?\n/);
+
+  // 전역 줄번호 → 실제 파일:줄번호 역매핑 (index.html + 외부 js 파일들, 이어붙인 순서 그대로)
+  const segments = [
+    { file: indexPath, lineCount: lines.length },
+    ...externalRefs.map((ref, idx) => ({ file: ref, lineCount: externalScripts[idx].split(/\r?\n/).length })),
+  ];
+  const locate = makeLocator(segments);
+  // addFinding + lineOf + locate를 한 번에 — 모든 srcLines 기반 검사는 이걸로 파일:줄번호를 정확히 보고
+  function addFindingAt(severity, pattern, title, detail) {
+    const loc = locate(lineOf(srcLines, pattern));
+    addFinding(severity, loc.file, loc.line, title, detail);
+  }
 
   if (scripts.length === 0 && externalScripts.length === 0) {
     addFinding('High', indexPath, 0, 'Missing script', 'The simulator has no executable JavaScript (inline or local src).');
@@ -176,12 +211,11 @@ if (!fs.existsSync(indexFullPath)) {
     addFinding('High', indexPath, error.lineNumber || 0, 'Browser smoke runtime error', error.message);
   }
 
-  const quizIds = runtimeInfo?.quizIds ?? [...fullSource.matchAll(/id:'(Q\d{3})'/g)].map((match) => match[1]);
+  const quizIds = runtimeInfo?.quizIds ?? [...fullSource.matchAll(/id:'((?:Q|HA)\d{3})'/g)].map((match) => match[1]);
   if (quizIds.length !== expectedQuizCount) {
-    addFinding(
+    addFindingAt(
       'Medium',
-      indexPath,
-      lineOf(srcLines, /const QUIZZES=\[/),
+      /const QUIZZES=\[/,
       'Unexpected quiz count',
       `Expected ${expectedQuizCount} quiz definitions, found ${quizIds.length}.`,
     );
@@ -189,15 +223,14 @@ if (!fs.existsSync(indexFullPath)) {
 
   const duplicateIds = [...new Set(quizIds.filter((id, idx) => quizIds.indexOf(id) !== idx))];
   for (const id of duplicateIds) {
-    addFinding('High', indexPath, lineOf(srcLines, new RegExp(`id:'${id}'`)), 'Duplicate quiz id', `${id} appears more than once.`);
+    addFindingAt('High', new RegExp(`id:'${id}'`), 'Duplicate quiz id', `${id} appears more than once.`);
   }
 
   const emptyGoalCount = runtimeInfo?.emptyGoalCount ?? countMatches(fullSource, /goalState:\{\}/g);
   if (emptyGoalCount > 0 && /if\(allMet\)this\._complete\(\)/.test(fullSource)) {
-    addFinding(
+    addFindingAt(
       'High',
-      indexPath,
-      lineOf(srcLines, /goalState:\{\}/),
+      /goalState:\{\}/,
       'Free mode can auto-complete empty goals',
       `${emptyGoalCount} freeform definitions use empty goalState, while _checkFree treats an empty object as all conditions met.`,
     );
@@ -208,10 +241,11 @@ if (!fs.existsSync(indexFullPath)) {
     const pipeEnd = lineOf(srcLines, /const parts=input\.split/);
     const pipeWindow = srcLines.slice(pipeStart - 1, pipeEnd > pipeStart ? pipeEnd - 1 : pipeStart + 120).join('\n');
     if (!/QuizEngine\.onCmd\(input\)/.test(pipeWindow)) {
+      const loc = locate(pipeStart);
       addFinding(
         'High',
-        indexPath,
-        pipeStart,
+        loc.file,
+        loc.line,
         'Piped commands skip quiz validation',
         'The pipe branch returns before notifying QuizEngine, so steps requiring commands like env | grep SAP cannot pass.',
       );
@@ -219,20 +253,18 @@ if (!fs.existsSync(indexFullPath)) {
   }
 
   if (/_save\(\)\{localStorage\.setItem/.test(fullSource)) {
-    addFinding(
+    addFindingAt(
       'Medium',
-      indexPath,
-      lineOf(srcLines, /_save\(\)\{localStorage\.setItem/),
+      /_save\(\)\{localStorage\.setItem/,
       'localStorage save is not guarded',
       'Completion can fail before the success UI if localStorage.setItem throws.',
     );
   }
 
   if (/running:\(\)=>.*\|\|true/.test(fullSource)) {
-    addFinding(
+    addFindingAt(
       'Low',
-      indexPath,
-      lineOf(srcLines, /running:\(\)=>.*\|\|true/),
+      /running:\(\)=>.*\|\|true/,
       'Always-true service status expression',
       'Expressions like sapOn||true are intentional only if sapstartsrv should always be active; otherwise they hide stopped states.',
     );
@@ -242,10 +274,9 @@ if (!fs.existsSync(indexFullPath)) {
   if (fs.existsSync(readmePath)) {
     const readme = fs.readFileSync(readmePath, 'utf8');
     if (/v4/.test(readme) && /Terminal v3/.test(fullSource)) {
-      addFinding(
+      addFindingAt(
         'Low',
-        indexPath,
-        lineOf(srcLines, /Terminal v3/),
+        /Terminal v3/,
         'Version label mismatch',
         'README references v4/Phase 3 while the app still displays v3.',
       );
@@ -265,7 +296,7 @@ const reportPath = path.join(reportDir, 'CODEX_REVIEW_REPORT.md');
 const actualQuizCount = (() => {
   if (!fs.existsSync(indexFullPath)) return 0;
   const idx = fs.readFileSync(indexFullPath, 'utf8');
-  const all = [idx, ...extractExternalScripts(idx, root)].join('\n');
+  const all = [idx, ...extractExternalScripts(idx, root).contents].join('\n');
   return countMatches(all, /id:'(?:Q|HA)\d{3}'/g);
 })();
 

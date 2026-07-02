@@ -10,7 +10,7 @@ Usage:
 다중 파일 구조 지원: index.html이 참조하는 css/js 외부 파일을 함께 받아
 번들 텍스트로 심볼 검사를 수행한다 (단일 파일이면 참조가 없어 그대로 검사).
 """
-import sys, os, re, time, socket, subprocess, urllib.request
+import sys, os, re, time, socket, subprocess, urllib.request, urllib.error
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 18080
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -52,10 +52,18 @@ try:
     html = urllib.request.urlopen(url, timeout=10).read().decode('utf-8')
 
     # 다중 파일: 로컬 css/js 참조를 모두 받아 번들로 합친다 (심볼 검사용)
-    refs = re.findall(r'(?:src|href)="((?!https?://)[^"]+\.(?:js|css))"', html)
+    # protocol-relative(//cdn...)도 외부로 취급 — startswith 검사로 두 겹 방어
+    refs = [
+        r for r in re.findall(r'(?:src|href)="((?!https?://)[^"]+\.(?:js|css))"', html)
+        if not r.startswith('//')
+    ]
     bundle = html
     for ref in refs:
-        bundle += '\n' + urllib.request.urlopen(url + ref, timeout=10).read().decode('utf-8')
+        try:
+            bundle += '\n' + urllib.request.urlopen(url + ref, timeout=10).read().decode('utf-8')
+        except (urllib.error.URLError, TimeoutError) as e:
+            check(f'Fetch local ref "{ref}"', False)
+            print(f"        ({e})")
 
     mode = f'multi-file ({len(refs)} refs)' if refs else 'single-file'
     print(f"\nSAP Basis Training Terminal -- smoke test (port {PORT}, {mode})\n")

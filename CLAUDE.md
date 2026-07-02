@@ -69,7 +69,8 @@ python .claude/skills/run-sap-bc-terminal/smoke.py 19086 dist  # 단일 파일(d
 ```
 
 > **커밋 규칙:** js/css/index.html 수정 시 `python tools/build.py` 실행 후 `dist/index.html`을 함께 커밋한다.
-> 소스와 dist가 어긋난 채 커밋하지 말 것.
+> 소스와 dist가 어긋난 채 커밋하지 말 것. `python tools/build.py --check`로 dist가 최신인지 검증 가능
+> (CI/훅은 아직 없음 — 커밋 전 수동 실행 권장, exit 1=stale).
 
 > **주의:** `codex-review.ps1`의 `-ExpectedQuizCount` 기본값은 77이나 현재 퀴즈는 82개다.
 > 기본값으로 실행하면 개수 불일치(Medium)가 보고되므로 **반드시 `82`를 전달**한다.
