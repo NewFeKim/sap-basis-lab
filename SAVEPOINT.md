@@ -14,7 +14,7 @@
 | **이전 마일스톤** | `efa792b` fix(sapcontrol): GetProcessList dispstatus RED→YELLOW |
 | **갱신 날짜** | 2026-06-30 |
 | **smoke test** | 48/48 통과 (단일+HA 모드, 퀴즈엔진, HA 심볼 포함) |
-| **GitHub Pages** | 배포 중 — https://newfekim.github.io/sap-bc-terminal/ |
+| **GitHub Pages** | 배포 중 — https://newfekim.github.io/sap-basis-lab/ |
 
 ---
 

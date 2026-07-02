@@ -98,7 +98,7 @@ python .claude/skills/run-sap-bc-terminal/smoke.py 19080    # 포트 지정
 - 반응형 white-tone 레이아웃 (터미널만 다크), `100dvh` 기반 높이
 - 폰트 크기 조절 버튼 `adjFs()` (FS_MIN=13~FS_MAX=20, localStorage `termFs`)
 - GitHub Star 버튼 (우측 상단)
-- GitHub Pages 배포 (단일 파일, https://newfekim.github.io/sap-bc-terminal/)
+- GitHub Pages 배포 (단일 파일, https://newfekim.github.io/sap-basis-lab/)
 
 **SAP 명령어**
 startsap, stopsap, sapcontrol (GetProcessList/GetSystemInstanceList/GetAlertTree/ParameterValue/Start/Stop/StopWait/ABAPGetWPTable 등), dpmon, sm50, R3trans, lgtst, disp+work -version/-V, tp (showbuffer/addtobuffer/importall/count/connect, 세션 내 버퍼 유지)

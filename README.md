@@ -2,7 +2,7 @@
 
 > A browser-based OS-level terminal simulator for SAP Basis engineers — built entirely with Vanilla JS, zero dependencies, deployed as a single HTML file.
 
-**[Live Demo →](https://newfekim.github.io/sap-bc-terminal/)** &nbsp;|&nbsp; Built with [Claude Code](https://claude.ai/code) · Maintained by [@NewFeKim](https://github.com/NewFeKim)
+**[Live Demo →](https://newfekim.github.io/sap-basis-lab/)** &nbsp;|&nbsp; Built with [Claude Code](https://claude.ai/code) · Maintained by [@NewFeKim](https://github.com/NewFeKim)
 
 ---
 
