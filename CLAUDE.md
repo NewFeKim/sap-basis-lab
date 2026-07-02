@@ -25,10 +25,14 @@ SAP Basis 신입 컨설턴트를 위한 **웹 기반 OS단 교육용 터미널 �
 ## 기술 스택 & 제약사항
 
 ### 구현 제약
-- **단일 파일(index.html) 유지** — 배포 편의를 위해 절대 분리 금지
-- 순수 Vanilla JS + HTML/CSS — 외부 라이브러리, npm, 빌드 도구 사용 금지
+- **투트랙 구조** (2026-07 전환)
+  - **메인 = 다중 파일**: `index.html` + `css/terminal.css` + `js/01~08*.js` — GitHub Pages/개발용. **코드 수정은 항상 여기에**
+  - **단일 파일 = 빌드 산출물**: `python tools/build.py` → `dist/index.html` — 파일 하나만 받아 쓰는 사용자용. **직접 수정 금지** (빌드로만 생성)
+  - js 파일은 숫자 접두사 순서대로 로드됨 (classic script, 전역 공유) — 로드 순서 변경 금지
+- 순수 Vanilla JS + HTML/CSS — 외부 라이브러리, npm, 번들러 사용 금지 (빌드는 Python 표준lib `build.py`만)
 - 다크 테마 고정 (배경: #0d1117)
 - 한국어 주석 및 응답
+- 줄바꿈 LF 고정 (`.gitattributes`) — build.py 바이트 동일성 보장
 
 ### 시뮬레이션 기준 버전 (명령어 출력 진위 판단 기준)
 
@@ -46,20 +50,26 @@ SAP Basis 신입 컨설턴트를 위한 **웹 기반 OS단 교육용 터미널 �
 
 ## 빌드 / 실행 / 검증
 
-빌드 단계 없음. `index.html` 단일 파일을 열면 즉시 실행된다.
+메인(다중 파일)은 빌드 없이 바로 실행. 단일 파일 배포본만 build.py로 생성한다.
 
 ```bash
-# 로컬 실행 (localStorage 안정성을 위해 http 서버 권장)
+# 로컬 실행 (다중 파일 메인 — localStorage 안정성을 위해 http 서버 권장)
 python -m http.server 8080          # → http://localhost:8080  (VSCode launch.json 포트와 동일)
 
-# 스모크 테스트 (48개 구조 검사: DOM ID / JS 심볼 / 명령어 / HA / 퀴즈 / 다크테마)
-python .claude/skills/run-sap-bc-terminal/smoke.py          # 기본 포트 19080
-python .claude/skills/run-sap-bc-terminal/smoke.py 19080    # 포트 지정
+# 단일 파일 빌드 (배포용 — js/css 수정 후 반드시 실행하여 dist 동기화)
+python tools/build.py               # → dist/index.html (css 1 + js 8 인라인)
+
+# 스모크 테스트 (48개 구조 검사 — 다중/단일 모두 지원)
+python .claude/skills/run-sap-bc-terminal/smoke.py          # 다중 파일(루트) 검사
+python .claude/skills/run-sap-bc-terminal/smoke.py 19086 dist  # 단일 파일(dist) 검사
 
 # 정적 리뷰 (Codex) — JS 구문/태그 균형/퀴즈 개수/빈 goalState/파이프 검증 등
-.\tools\codex-review.ps1 -ExpectedQuizCount 82      # PowerShell
+.\tools\codex-review.ps1 -ExpectedQuizCount 82      # PowerShell (외부 js 자동 포함)
 # 결과: .ai-collab/CODEX_REVIEW_REPORT.md  (exit 0=clean, 1=Low/Med, 2=High)
 ```
+
+> **커밋 규칙:** js/css/index.html 수정 시 `python tools/build.py` 실행 후 `dist/index.html`을 함께 커밋한다.
+> 소스와 dist가 어긋난 채 커밋하지 말 것.
 
 > **주의:** `codex-review.ps1`의 `-ExpectedQuizCount` 기본값은 77이나 현재 퀴즈는 82개다.
 > 기본값으로 실행하면 개수 불일치(Medium)가 보고되므로 **반드시 `82`를 전달**한다.

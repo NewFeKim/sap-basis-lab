@@ -42,6 +42,12 @@
    - 시뮬레이터 출력 검수에 활용 (본문은 요약 발췌까지 / 공식문서는 help.sap.com 직접 조회)
    - 메모리 기록: `sap-cloud-alm-mcp`
 
+6. **투트랙 구조 전환** — 브랜치 `refactor/multi-file`
+   - index.html(4,167줄)을 css 1 + js 8 파일로 분할 (섹션 주석 경계 기준, 기계적 분할)
+   - `tools/build.py` 신설 — 다중 파일 → dist/index.html 단일 병합 (원본과 **바이트 동일** 검증)
+   - smoke.py 다중/단일 겸용 (`smoke.py [port] [dir]`), codex-review.mjs 외부 js 로드 지원
+   - .gitattributes LF 고정. 브라우저 실동작(명령/3중 파이프/퀴즈/HA) + smoke 2종 + codex 통과
+
 ---
 
 ## 다음 우선순위 작업
@@ -75,7 +81,8 @@
 | 결정 | 이유 |
 |---|---|
 | 단일 index.html 유지 | 배포 편의 (GitHub Pages 등 정적 호스팅) |
-| (예약) 5,000줄 도달 시 src/ 분리 + build.py 병합 검토 | 개발은 분리, 배포는 단일 파일 유지 (Python 표준lib 병합, 신규 의존성 0) — 현재 4,167줄 |
+| **투트랙 구조 (2026-07 실행)** — 메인=다중 파일(css/+js/01~08), 단일 파일=build.py 산출물(dist/) | 유지보수성 + 파일 하나 배포 병행. 산출물은 기존 단일 파일과 바이트 동일 검증 완료 |
+| 줄바꿈 LF 고정 (.gitattributes) | build.py 바이트 동일성 보장, CRLF 경고 제거 |
 | Vanilla JS (라이브러리 금지) | 외부 의존성 없이 파일 하나로 완결 |
 | startsap/stopsap 코드 유지 | 레거시 명령어 학습용; 단 deprecated 경고 출력 및 퀴즈는 sapcontrol 권장 |
 | tp 세션 버퍼 (`window._tpBuffer`) | addtobuffer 후 showbuffer 일관성 보장 |

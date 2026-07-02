@@ -4,12 +4,18 @@ Smoke test for SAP Basis Training Terminal.
 Starts Python http.server, fetches the page, checks key elements, then stops.
 
 Usage:
-  python smoke.py [port]   default port: 18080
+  python smoke.py [port] [serve_dir]   default port: 18080, serve_dir: repo root
+  python smoke.py 19080 dist           # 단일 파일 빌드(dist/index.html) 검사
+
+다중 파일 구조 지원: index.html이 참조하는 css/js 외부 파일을 함께 받아
+번들 텍스트로 심볼 검사를 수행한다 (단일 파일이면 참조가 없어 그대로 검사).
 """
-import sys, os, time, socket, subprocess, urllib.request
+import sys, os, re, time, socket, subprocess, urllib.request
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 18080
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+if len(sys.argv) > 2:
+    ROOT = os.path.abspath(os.path.join(ROOT, sys.argv[2]))
 
 def wait_for_port(port, timeout=10):
     deadline = time.time() + timeout
@@ -45,7 +51,14 @@ try:
     url = f'http://localhost:{PORT}/'
     html = urllib.request.urlopen(url, timeout=10).read().decode('utf-8')
 
-    print(f"\nSAP Basis Training Terminal -- smoke test (port {PORT})\n")
+    # 다중 파일: 로컬 css/js 참조를 모두 받아 번들로 합친다 (심볼 검사용)
+    refs = re.findall(r'(?:src|href)="((?!https?://)[^"]+\.(?:js|css))"', html)
+    bundle = html
+    for ref in refs:
+        bundle += '\n' + urllib.request.urlopen(url + ref, timeout=10).read().decode('utf-8')
+
+    mode = f'multi-file ({len(refs)} refs)' if refs else 'single-file'
+    print(f"\nSAP Basis Training Terminal -- smoke test (port {PORT}, {mode})\n")
 
     # ── Page load ────────────────────────────────────────────────────────────
     check("HTTP 200 / page returned", len(html) > 1000)
@@ -61,25 +74,25 @@ try:
                    'FS_AP', 'FS_DB', 'FILES_AP', 'FILES_DB',
                    'haMode', 'activeServer', 'switchServer',
                    'ap1On', 'ap2On', 'db1On', 'db2On']:
-        check(f'JS symbol "{symbol}" present', symbol in html)
+        check(f'JS symbol "{symbol}" present', symbol in bundle)
 
     # ── SAP commands ─────────────────────────────────────────────────────────
     for cmd in ['startsap', 'stopsap', 'sapcontrol', 'dpmon', 'R3trans', 'lgtst',
                 'disp+work', 'tp ']:
-        check(f'SAP cmd "{cmd}" in source', cmd in html)
+        check(f'SAP cmd "{cmd}" in source', cmd in bundle)
 
     # ── HANA commands ────────────────────────────────────────────────────────
     for cmd in ['HDB', 'hdbsql', 'hdbcons', 'hdbbackupdiag', 'hdbnsutil']:
-        check(f'HANA cmd "{cmd}" in source', cmd in html)
+        check(f'HANA cmd "{cmd}" in source', cmd in bundle)
 
     # ── Quiz engine ──────────────────────────────────────────────────────────
     for symbol in ['const QUIZZES', 'QuizEngine', 'QuizUI', 'QuizStorage',
                    'haOnly', 'haHint', 'onServer']:
-        check(f'Quiz symbol "{symbol}" present', symbol in html)
+        check(f'Quiz symbol "{symbol}" present', symbol in bundle)
 
     # ── Styling ──────────────────────────────────────────────────────────────
-    check('Terminal dark bg #0d1117', '#0d1117' in html)
-    check('APP_VERSION constant present', 'APP_VERSION' in html)
+    check('Terminal dark bg #0d1117', '#0d1117' in bundle)
+    check('APP_VERSION constant present', 'APP_VERSION' in bundle)
 
     total = len(results)
     passed = sum(results)

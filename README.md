@@ -25,8 +25,8 @@
 
 | Constraint | Decision | Why |
 |---|---|---|
-| **Zero dependencies** | Pure Vanilla JS + HTML/CSS | Single-file deployment to any static host |
-| **Single `index.html`** | No build step, no npm | Open the file — it runs |
+| **Zero dependencies** | Pure Vanilla JS + HTML/CSS | Deploys to any static host |
+| **Two-track structure** | Multi-file main (`index.html`+`css/`+`js/`) + single-file build (`dist/index.html`) | Maintainable source, one-file portability preserved |
 | **HA simulation** | 4 independent server states with shared `sapOn`/`dbOn` flags | Mirrors real SAP dual-stack topology |
 | **Quiz engine** | Step validator (`cmd` / `tab` / `server` / `state` types) with localStorage persistence | No backend needed |
 | **Pipe & redirect** | Real `|` filtering + `>` / `>>` / `less` / `more` pager | Teaches actual shell muscle memory |
@@ -174,16 +174,18 @@ systemctl status / uname / env / date / history / clear
 ## Run Locally
 
 ```bash
-# Option 1 — just open the file
-open index.html          # macOS
-start index.html         # Windows
+# Option 1 — multi-file main (recommended)
+python3 -m http.server 8080        # repo root → http://localhost:8080
 
-# Option 2 — local web server (recommended for localStorage stability)
-python3 -m http.server 8080
-# → http://localhost:8080
+# Option 2 — single file: grab dist/index.html and just open it
+start dist/index.html              # Windows
+open dist/index.html               # macOS
+
+# Rebuild the single file after editing source (Python stdlib only)
+python3 tools/build.py             # css/ + js/ → dist/index.html
 ```
 
-No npm install. No build step. No backend. The entire app is `index.html`.
+No npm install. No bundler. No backend. The single-file build is byte-equivalent to inlining every source file.
 
 ---
 

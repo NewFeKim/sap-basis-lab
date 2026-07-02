@@ -1,0 +1,7 @@
+# 웹 소스는 LF 고정 — build.py 바이트 동일성 보장 + CRLF 경고 제거
+*.html text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.py   text eol=lf
+*.md   text eol=lf
+*.json text eol=lf

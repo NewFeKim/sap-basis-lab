@@ -25,7 +25,19 @@ function countMatches(text, re) {
 }
 
 function extractInlineScripts(html) {
-  return [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => match[1]);
+  return [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => match[1]);
+}
+
+// 다중 파일 구조: <script src="js/..."> 로컬 참조를 읽어 소스에 포함
+function extractExternalScripts(html, rootDir) {
+  const out = [];
+  for (const match of html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)) {
+    const ref = match[1];
+    if (/^https?:\/\//i.test(ref)) continue;
+    const full = path.join(rootDir, ref);
+    if (fs.existsSync(full)) out.push(fs.readFileSync(full, 'utf8'));
+  }
+  return out;
 }
 
 function tagBalance(html, tag) {
@@ -118,9 +130,13 @@ if (!fs.existsSync(indexFullPath)) {
   const html = fs.readFileSync(indexFullPath, 'utf8');
   const lines = html.split(/\r?\n/);
   const scripts = extractInlineScripts(html);
+  const externalScripts = extractExternalScripts(html, root);
+  // 다중/단일 파일 공통 검사용 전체 소스 (HTML + 모든 JS)
+  const fullSource = [html, ...externalScripts].join('\n');
+  const srcLines = fullSource.split(/\r?\n/);
 
-  if (scripts.length === 0) {
-    addFinding('High', indexPath, 0, 'Missing inline script', 'The simulator has no executable JavaScript block.');
+  if (scripts.length === 0 && externalScripts.length === 0) {
+    addFinding('High', indexPath, 0, 'Missing script', 'The simulator has no executable JavaScript (inline or local src).');
   }
 
   for (const tag of ['div', 'span', 'script', 'style']) {
@@ -146,7 +162,7 @@ if (!fs.existsSync(indexFullPath)) {
     );
   }
 
-  const scriptBody = scripts.join('\n');
+  const scriptBody = [...scripts, ...externalScripts].join('\n');
   try {
     new vm.Script(scriptBody, { filename: indexPath });
   } catch (error) {
@@ -160,12 +176,12 @@ if (!fs.existsSync(indexFullPath)) {
     addFinding('High', indexPath, error.lineNumber || 0, 'Browser smoke runtime error', error.message);
   }
 
-  const quizIds = runtimeInfo?.quizIds ?? [...html.matchAll(/id:'(Q\d{3})'/g)].map((match) => match[1]);
+  const quizIds = runtimeInfo?.quizIds ?? [...fullSource.matchAll(/id:'(Q\d{3})'/g)].map((match) => match[1]);
   if (quizIds.length !== expectedQuizCount) {
     addFinding(
       'Medium',
       indexPath,
-      lineOf(lines, /const QUIZZES=\[/),
+      lineOf(srcLines, /const QUIZZES=\[/),
       'Unexpected quiz count',
       `Expected ${expectedQuizCount} quiz definitions, found ${quizIds.length}.`,
     );
@@ -173,24 +189,24 @@ if (!fs.existsSync(indexFullPath)) {
 
   const duplicateIds = [...new Set(quizIds.filter((id, idx) => quizIds.indexOf(id) !== idx))];
   for (const id of duplicateIds) {
-    addFinding('High', indexPath, lineOf(lines, new RegExp(`id:'${id}'`)), 'Duplicate quiz id', `${id} appears more than once.`);
+    addFinding('High', indexPath, lineOf(srcLines, new RegExp(`id:'${id}'`)), 'Duplicate quiz id', `${id} appears more than once.`);
   }
 
-  const emptyGoalCount = runtimeInfo?.emptyGoalCount ?? countMatches(html, /goalState:\{\}/g);
-  if (emptyGoalCount > 0 && /if\(allMet\)this\._complete\(\)/.test(html)) {
+  const emptyGoalCount = runtimeInfo?.emptyGoalCount ?? countMatches(fullSource, /goalState:\{\}/g);
+  if (emptyGoalCount > 0 && /if\(allMet\)this\._complete\(\)/.test(fullSource)) {
     addFinding(
       'High',
       indexPath,
-      lineOf(lines, /goalState:\{\}/),
+      lineOf(srcLines, /goalState:\{\}/),
       'Free mode can auto-complete empty goals',
       `${emptyGoalCount} freeform definitions use empty goalState, while _checkFree treats an empty object as all conditions met.`,
     );
   }
 
-  const pipeStart = lineOf(lines, /if\(segs\.length>1\)/);
+  const pipeStart = lineOf(srcLines, /if\(segs\.length>1\)/);
   if (pipeStart > 0) {
-    const pipeEnd = lineOf(lines, /const parts=input\.split/);
-    const pipeWindow = lines.slice(pipeStart - 1, pipeEnd > pipeStart ? pipeEnd - 1 : pipeStart + 120).join('\n');
+    const pipeEnd = lineOf(srcLines, /const parts=input\.split/);
+    const pipeWindow = srcLines.slice(pipeStart - 1, pipeEnd > pipeStart ? pipeEnd - 1 : pipeStart + 120).join('\n');
     if (!/QuizEngine\.onCmd\(input\)/.test(pipeWindow)) {
       addFinding(
         'High',
@@ -202,21 +218,21 @@ if (!fs.existsSync(indexFullPath)) {
     }
   }
 
-  if (/_save\(\)\{localStorage\.setItem/.test(html)) {
+  if (/_save\(\)\{localStorage\.setItem/.test(fullSource)) {
     addFinding(
       'Medium',
       indexPath,
-      lineOf(lines, /_save\(\)\{localStorage\.setItem/),
+      lineOf(srcLines, /_save\(\)\{localStorage\.setItem/),
       'localStorage save is not guarded',
       'Completion can fail before the success UI if localStorage.setItem throws.',
     );
   }
 
-  if (/running:\(\)=>.*\|\|true/.test(html)) {
+  if (/running:\(\)=>.*\|\|true/.test(fullSource)) {
     addFinding(
       'Low',
       indexPath,
-      lineOf(lines, /running:\(\)=>.*\|\|true/),
+      lineOf(srcLines, /running:\(\)=>.*\|\|true/),
       'Always-true service status expression',
       'Expressions like sapOn||true are intentional only if sapstartsrv should always be active; otherwise they hide stopped states.',
     );
@@ -225,11 +241,11 @@ if (!fs.existsSync(indexFullPath)) {
   const readmePath = path.join(root, 'README.md');
   if (fs.existsSync(readmePath)) {
     const readme = fs.readFileSync(readmePath, 'utf8');
-    if (/v4/.test(readme) && /Terminal v3/.test(html)) {
+    if (/v4/.test(readme) && /Terminal v3/.test(fullSource)) {
       addFinding(
         'Low',
         indexPath,
-        lineOf(lines, /Terminal v3/),
+        lineOf(srcLines, /Terminal v3/),
         'Version label mismatch',
         'README references v4/Phase 3 while the app still displays v3.',
       );
@@ -246,9 +262,12 @@ findings.sort((a, b) => (
 const reportDir = path.join(root, '.ai-collab');
 fs.mkdirSync(reportDir, { recursive: true });
 const reportPath = path.join(reportDir, 'CODEX_REVIEW_REPORT.md');
-const actualQuizCount = fs.existsSync(indexFullPath)
-  ? countMatches(fs.readFileSync(indexFullPath, 'utf8'), /id:'Q\d{3}'/g)
-  : 0;
+const actualQuizCount = (() => {
+  if (!fs.existsSync(indexFullPath)) return 0;
+  const idx = fs.readFileSync(indexFullPath, 'utf8');
+  const all = [idx, ...extractExternalScripts(idx, root)].join('\n');
+  return countMatches(all, /id:'(?:Q|HA)\d{3}'/g);
+})();
 
 const report = [
   '# Codex Review Report',

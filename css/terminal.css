@@ -1,0 +1,148 @@
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ── 페이지 (화이트 톤) ── */
+body{
+  background:#f0f2f5;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-height:100vh;
+  min-height:100dvh;
+  padding:20px 20px;
+  font-family:'Menlo','Courier New',monospace;
+}
+
+/* ── 페이지 헤더 ── */
+.page-hd{
+  width:100%;
+  max-width:1400px;
+  margin-bottom:10px;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+}
+.page-hd-title{font-size:15px;font-weight:700;color:#1f2937;letter-spacing:-.2px}
+.page-hd-sub{font-size:12px;color:#6b7280}
+
+/* ── 터미널 컨테이너 (반응형) ── */
+#tr{
+  width:100%;
+  max-width:1400px;
+  height:calc(100dvh - 88px);  /* 페이지 패딩 + 헤더 높이 제외 */
+  min-height:520px;
+  background:#0d1117;
+  position:relative;
+  color:#c9d1d9;
+  border-radius:10px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  font-size:13px;
+  border:1px solid #30363d;
+  box-shadow:0 4px 24px rgba(0,0,0,.15),0 1px 4px rgba(0,0,0,.1);
+}
+
+.tb{background:#161b22;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #30363d;flex-shrink:0}
+.dot{width:12px;height:12px;border-radius:50%}
+.dr{background:#ff5f57}.dy{background:#ffbd2e}.dg{background:#28ca41}
+.tt{margin-left:8px;font-size:11px;color:#8b949e;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stabs{display:flex;align-items:center;background:#0d1117;border-bottom:1px solid #30363d;flex-shrink:0;gap:0}
+.stab{padding:7px 16px;font-size:12px;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;user-select:none;transition:color .15s}
+.stab.on{color:#58a6ff;border-bottom-color:#58a6ff}
+.stab.db-tab.on{color:#e3a04f;border-bottom-color:#e3a04f}
+.stab:hover:not(.on){color:#c9d1d9}
+/* ── 모드 토글 ── */
+.mode-wrap{display:flex;align-items:center;padding:0 12px;gap:4px;border-right:1px solid #30363d;flex-shrink:0}
+.mode-btn{padding:3px 10px;font-size:11px;cursor:pointer;border-radius:4px;color:#6e7681;border:1px solid #30363d;user-select:none;transition:all .15s}
+.mode-btn.on{background:#1f6feb22;color:#58a6ff;border-color:#58a6ff}
+
+/* ── 출력 영역 (flex로 남은 공간 전부 사용) ── */
+.out{overflow-y:auto;padding:14px 18px;line-height:1.7;flex:1;min-height:0}
+.out::-webkit-scrollbar{width:6px}
+.out::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
+.out::-webkit-scrollbar-track{background:transparent}
+
+.ln{white-space:pre-wrap;word-break:break-all;min-height:1.7em}
+.ln.su{color:#56d364}.ln.er{color:#f85149}.ln.wa{color:#e3b341}
+.ln.in{color:#79c0ff}.ln.mu{color:#6e7681}
+.pg{background:#0d1117;padding:7px 18px;border-top:1px solid #30363d;font-size:11px;color:#6e7681;display:none;align-items:center;gap:12px;flex-shrink:0}
+.ir{display:flex;align-items:center;padding:9px 18px 13px;border-top:1px solid #21262d;gap:6px;flex-shrink:0;background:#0d1117}
+.pl{color:#56d364;font-size:13px;white-space:nowrap;flex-shrink:0}
+#ci{flex:1;background:transparent;border:none;outline:none;color:#e6edf3;font-family:'Menlo','Courier New',monospace;font-size:13px;caret-color:#e6edf3}
+.hb{padding:6px 18px;background:#161b22;font-size:11px;color:#6e7681;border-top:1px solid #21262d;flex-shrink:0;display:flex;gap:12px;flex-wrap:wrap}
+.hb span{cursor:pointer;transition:color .1s}.hb span:hover{color:#c9d1d9}
+
+/* ── 반응형 ── */
+/* 태블릿 (≤1024px) */
+@media(max-width:1024px){
+  body{padding:14px 14px}
+  .page-hd{margin-bottom:8px}
+  #tr{height:calc(100dvh - 76px);font-size:13px}
+}
+/* 모바일 (≤640px) */
+@media(max-width:640px){
+  body{padding:0}
+  .page-hd{display:none}
+  #tr{height:100dvh;height:100svh;border-radius:0;border:none;box-shadow:none;font-size:12px;min-height:unset}
+  .stab{padding:6px 14px;font-size:11px}
+  .out{padding:10px 12px}
+  .ir{padding:7px 12px 10px}
+  .hb{padding:5px 12px;gap:10px}
+  .tt{font-size:10px}
+}
+/* ── GitHub Star 버튼 ── */
+#star-btn{position:fixed;top:18px;right:20px;z-index:500;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 18px;background:#1f2937;color:#fbbf24;text-decoration:none;font-family:system-ui,-apple-system,sans-serif;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.28);transition:background .15s,transform .15s,box-shadow .15s;user-select:none}
+#star-btn:hover{background:#374151;transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.35)}
+#star-btn:active{transform:translateY(0)}
+.star-ico{font-size:22px;line-height:1}
+.star-lbl{font-size:12px;font-weight:700;letter-spacing:.3px;color:#fbbf24}
+.star-sub{font-size:9px;color:#9ca3af;font-weight:400;white-space:nowrap}
+@media(max-width:640px){#star-btn{top:12px;right:12px;padding:8px 14px}.star-ico{font-size:18px}.star-lbl{font-size:11px}.star-sub{display:none}}
+/* ── 글씨 크기 조절 ── */
+.fs-ctrl{display:flex;align-items:center;gap:3px;margin-left:auto;flex-shrink:0}
+.fs-btn{cursor:pointer;font-size:11px;font-weight:bold;color:#6e7681;padding:2px 7px;border:1px solid #30363d;border-radius:4px;user-select:none;transition:color .1s,background .1s;font-family:sans-serif}
+.fs-btn:hover:not(.fs-disabled){color:#c9d1d9;background:#21262d}
+.fs-btn.fs-disabled{opacity:.35;cursor:default}
+#fs-val{font-size:10px;color:#6e7681;min-width:28px;text-align:center;user-select:none}
+
+/* ── 퀴즈 UI ── */
+.qz-btn{margin-left:8px;padding:3px 10px;font-size:11px;color:#58a6ff;border:1px solid #30363d;border-radius:5px;cursor:pointer;user-select:none;transition:background .15s}
+.qz-btn:hover{background:#1f2937}
+#qz-overlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:#0d1117;z-index:100;flex-direction:column;overflow:hidden}
+#qz-overlay.open{display:flex}
+.qz-ohd{background:#161b22;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #30363d;flex-shrink:0}
+.qz-ohd-title{font-size:13px;color:#c9d1d9;font-weight:bold}
+.qz-ohd-sub{font-size:11px;color:#6e7681;margin-left:8px}
+.qz-close{font-size:11px;color:#58a6ff;cursor:pointer;padding:3px 8px;border:1px solid #30363d;border-radius:4px}
+.qz-close:hover{background:#1f2937}
+#qz-cats{flex:1;overflow-y:auto;padding:12px 16px}
+#qz-cats::-webkit-scrollbar{width:5px}
+#qz-cats::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
+.qz-cat-hd{font-size:11px;color:#e3b341;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.5px}
+.qz-cat-hd:first-child{margin-top:0}
+.qz-items{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.qz-item{font-size:11px;padding:5px 10px;border:1px solid #30363d;border-radius:5px;cursor:pointer;color:#c9d1d9;background:#0d1117;transition:all .15s;min-width:160px}
+.qz-item:hover{border-color:#58a6ff;color:#58a6ff;background:#0f1923}
+.qz-item.done{border-color:#238636;color:#56d364}
+.qz-item.done::after{content:' ✓'}
+.qz-item .qz-diff{font-size:10px;color:#6e7681;margin-left:4px}
+.qz-item .qz-diff.h{color:#f85149}.qz-item .qz-diff.m{color:#e3b341}.qz-item .qz-diff.e{color:#56d364}
+#qz-active{display:none;background:#161b22;border-top:1px solid #30363d;padding:8px 16px;flex-shrink:0}
+#qz-active.open{display:block}
+.qz-info-bar{display:flex;gap:8px;align-items:center;margin-bottom:5px;flex-wrap:wrap}
+.qz-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:bold}
+.qz-badge.id{background:#1f3a5f;color:#58a6ff}
+.qz-badge.step{background:#2d1b4a;color:#bc8cff}
+.qz-badge.mode{background:#1a2f1a;color:#56d364}
+.qz-badge.free{background:#2f2a10;color:#e3b341}
+#qz-instr{font-size:12px;color:#c9d1d9;line-height:1.6;margin-bottom:6px;white-space:pre-wrap}
+.qz-ctrl{display:flex;gap:10px;font-size:11px;flex-wrap:wrap}
+.qz-ctrl span{cursor:pointer;color:#6e7681;transition:color .1s;padding:2px 0}
+.qz-ctrl span:hover{color:#c9d1d9}
+.qz-ctrl .qz-hint-btn{color:#e3b341}.qz-ctrl .qz-hint-btn:hover{color:#f5c842}
+.qz-ctrl .qz-abort{color:#f85149}.qz-ctrl .qz-abort:hover{color:#ff6b6b}
+.qz-ctrl .qz-done-btn{color:#56d364;background:#0d2a0d;border:1px solid #56d364;padding:1px 8px;border-radius:4px}.qz-ctrl .qz-done-btn:hover{background:#1a4a1a}
+#qz-hint-box{display:none;font-size:11px;color:#e3b341;background:#1c1a10;border:1px solid #3d3400;border-radius:5px;padding:6px 10px;margin-top:5px;white-space:pre-wrap}
+#qz-hint-box.open{display:block}
+#qz-done-banner{display:none;text-align:center;padding:8px 16px;font-size:12px;background:#0d2318;color:#56d364;border-top:1px solid #238636;flex-shrink:0}
+#qz-done-banner.open{display:block}
